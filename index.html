@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CODE DRAGON — Interview of Fire (Gemini Edition)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+<div id="app">
+  <div class="modeTag" id="modeTag">CLASSIC</div>
+  <button id="muteBtn" title="toggle sound">♪ ON</button>
+
+  <div class="titlebar">
+    <h1 class="pixel">CODE&nbsp;DRAGON</h1>
+    <div class="sub">~ The Interview of Fire ~</div>
+  </div>
+
+  <!-- ===================== SETUP ===================== -->
+  <section id="setupScreen" class="active">
+    <div class="prompt">Choose how the <b>dragon</b> tests you.</div>
+    <div class="setup-note">AI Mode uses Google Gemini to ask open-ended questions and grade what you actually type — like a real interview. Classic Mode runs offline with a fixed multiple-choice bank.</div>
+
+    <div class="toggle-row">
+      <div class="toggle aiopt" id="optAI" tabindex="0">
+        <h4>AI MODE</h4>
+        <p>Type your answers. Gemini grades them &amp; the dragon talks back.</p>
+      </div>
+      <div class="toggle classicopt sel" id="optClassic" tabindex="0">
+        <h4>CLASSIC</h4>
+        <p>Multiple choice. No key, works fully offline.</p>
+      </div>
+    </div>
+
+    <div id="keyWrap" style="display:none;">
+      <div class="keyrow">
+        <input id="keyInput" type="password" placeholder="Paste your Gemini API key (AI Studio)" autocomplete="off">
+        <button class="btn ghost" id="keySave" style="font-size:9px;">SAVE</button>
+      </div>
+      <div id="keyStatus"></div>
+    </div>
+
+    <div class="btnrow">
+      <button class="btn" id="toSelect">ENTER THE LAIR ▶</button>
+    </div>
+    <div class="hint">Get a free key at aistudio.google.com → "Get API key". It stays in your browser only.</div>
+  </section>
+
+  <!-- ===================== SELECT ===================== -->
+  <section id="selectScreen">
+    <div class="prompt">A <b>dragon</b> guards the offer letter.<br>Choose your class, adventurer.</div>
+    <div class="cards" id="cards"></div>
+    <div class="hint">Each class is quizzed on its own craft.</div>
+  </section>
+
+  <!-- ===================== BATTLE ===================== -->
+  <section id="battleScreen">
+    <div class="stage">
+      <canvas id="stageCanvas" width="320" height="160"></canvas>
+      <div class="nameplate" id="dragonPlate">
+        THE DRAGON
+        <div class="bar"><i id="dragonHpFill"></i></div>
+        <div class="hpnum"><span id="dragonHpNum">100</span> HP</div>
+      </div>
+      <div class="nameplate" id="heroPlate">
+        <span id="heroName">HERO</span>
+        <div class="bar"><i id="heroHpFill"></i></div>
+        <div class="hpnum"><span id="heroHpNum">100</span> HP</div>
+      </div>
+    </div>
+
+    <div class="qpanel">
+      <div class="turnflag" id="turnFlag">⚔ YOUR STRIKE — answer to deal damage</div>
+      <div id="questionText">…</div>
+      <div id="answerArea"></div>
+      <div class="verdict" id="verdict"></div>
+    </div>
+  </section>
+
+  <!-- ===================== END ===================== -->
+  <section id="endScreen">
+    <div id="endTitle"></div>
+    <div id="endSub"></div>
+    <div id="endStats"></div>
+    <div id="endReview"></div>
+    <div class="btnrow">
+      <button class="btn" id="againBtn">RUN IT BACK</button>
+      <button class="btn ghost" id="classBtn">NEW CLASS</button>
+    </div>
+  </section>
+</div>
+
+  <!-- load order matters: each file relies on the ones above it -->
+  <script src="js/config.js"></script>
+  <script src="js/sprites.js"></script>
+  <script src="js/data.js"></script>
+  <script src="js/gemini.js"></script>
+  <script src="js/audio.js"></script>
+  <script src="js/render.js"></script>
+  <script src="js/game.js"></script>
+  <script src="js/ui.js"></script>
+</body>
+</html>

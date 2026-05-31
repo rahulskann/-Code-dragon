@@ -1,0 +1,141 @@
+  :root{
+    --bg0:#0a0712; --bg1:#160e26; --panel:#1d1530; --panel-edge:#3a2a5e;
+    --ink:#efe8d6; --ink-dim:#a596c4; --gold:#e8c25a;
+    --hp-good:#46d36b; --hp-mid:#e8c25a; --hp-low:#e0503a; --dragon-hp:#d23b3b;
+    --correct:#46d36b; --partial:#e8c25a; --wrong:#e0503a;
+    --mage:#7d4fd6; --fighter:#d23b3b; --thief:#2fa06b;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  html,body{height:100%;}
+  body{
+    background:radial-gradient(120% 80% at 50% -10%, #2a1840 0%, var(--bg1) 45%, var(--bg0) 100%);
+    color:var(--ink); font-family:'VT323',monospace;
+    display:flex; align-items:center; justify-content:center;
+    padding:14px; min-height:100vh; -webkit-font-smoothing:none;
+  }
+  body::before{
+    content:"";position:fixed;inset:0;pointer-events:none;z-index:999;
+    background:repeating-linear-gradient(0deg, rgba(0,0,0,0.16) 0 1px, rgba(0,0,0,0) 1px 3px);
+    mix-blend-mode:multiply;opacity:.5;
+  }
+  .pixel{font-family:'Press Start 2P',monospace;}
+
+  #app{
+    width:100%;max-width:640px;background:var(--panel);
+    border:4px solid var(--panel-edge);
+    box-shadow:0 0 0 4px #0c0818,0 0 0 6px var(--gold),0 18px 0 6px rgba(0,0,0,.4),0 30px 60px rgba(0,0,0,.6);
+    image-rendering:pixelated;position:relative;overflow:hidden;
+  }
+  .titlebar{
+    background:linear-gradient(180deg,#2a1c46,#1a1230);
+    border-bottom:4px solid var(--panel-edge);padding:16px 18px 14px;text-align:center;position:relative;
+  }
+  .titlebar h1{font-family:'Press Start 2P';font-size:20px;color:var(--gold);
+    text-shadow:2px 2px 0 #5a3a0a,0 0 18px rgba(232,194,90,.35);letter-spacing:1px;}
+  .titlebar .sub{font-size:20px;color:var(--ink-dim);margin-top:6px;}
+  .modeTag{position:absolute;top:12px;left:14px;font-family:'Press Start 2P';font-size:7px;
+    border:2px solid var(--panel-edge);padding:5px 7px;color:var(--ink-dim);}
+  .modeTag.ai{color:#9a72ea;border-color:#7d4fd6;text-shadow:0 0 8px rgba(125,79,214,.6);}
+  #muteBtn{position:absolute;top:10px;right:12px;z-index:5;font-family:'Press Start 2P';font-size:8px;
+    color:var(--ink-dim);background:#1a1230;border:2px solid var(--panel-edge);padding:6px 8px;cursor:pointer;}
+  #muteBtn:hover{color:var(--gold);border-color:var(--gold);}
+
+  section{display:none;}
+  section.active{display:block;}
+
+  /* ---------- SETUP ---------- */
+  #setupScreen{padding:24px 22px 28px;}
+  .prompt{font-size:21px;text-align:center;line-height:1.25;margin-bottom:6px;}
+  .prompt b{color:var(--gold);}
+  .setup-note{font-size:16px;color:var(--ink-dim);text-align:center;line-height:1.3;margin:10px 0 18px;}
+  .keyrow{display:flex;gap:8px;margin-bottom:14px;}
+  input[type=text],input[type=password]{
+    flex:1;background:#120c20;border:2px solid var(--panel-edge);color:var(--ink);
+    font-family:'VT323';font-size:20px;padding:9px 11px;outline:none;}
+  input:focus{border-color:var(--gold);}
+  .toggle-row{display:flex;gap:10px;margin-bottom:16px;}
+  .toggle{flex:1;border:3px solid var(--panel-edge);background:#150e28;padding:12px;cursor:pointer;text-align:center;}
+  .toggle.sel{border-color:var(--gold);background:#1f1636;box-shadow:inset 0 0 18px rgba(232,194,90,.12);}
+  .toggle h4{font-family:'Press Start 2P';font-size:10px;margin-bottom:7px;}
+  .toggle.aiopt h4{color:#9a72ea;} .toggle.classicopt h4{color:var(--gold);}
+  .toggle p{font-size:16px;color:var(--ink-dim);line-height:1.2;}
+  #keyStatus{font-size:15px;text-align:center;min-height:18px;margin-bottom:10px;color:var(--ink-dim);}
+  #keyStatus.ok{color:var(--correct);} #keyStatus.bad{color:var(--wrong);}
+
+  /* ---------- SELECT ---------- */
+  #selectScreen{padding:20px 18px 24px;}
+  .cards{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin:18px 0 6px;}
+  .card{border:3px solid var(--panel-edge);background:#150e28;padding:12px 8px;cursor:pointer;text-align:center;
+    transition:transform .08s,border-color .08s;}
+  .card:hover,.card:focus{transform:translateY(-3px);border-color:var(--gold);outline:none;}
+  .frame{display:flex;align-items:flex-end;justify-content:center;height:104px;}
+  .card h3{font-family:'Press Start 2P';font-size:11px;margin:8px 0 4px;}
+  .card .role{font-size:16px;color:var(--gold);margin-bottom:6px;}
+  .card .blurb{font-size:15px;color:var(--ink-dim);line-height:1.15;}
+  .hint{font-size:16px;color:var(--ink-dim);text-align:center;margin-top:14px;line-height:1.2;}
+
+  /* ---------- BATTLE ---------- */
+  #battleScreen{padding:0;}
+  .stage{position:relative;height:240px;background:
+      linear-gradient(180deg,#241640 0%,#1a1030 60%,#120a22 100%);
+    border-bottom:4px solid var(--panel-edge);overflow:hidden;}
+  .stage::after{content:"";position:absolute;inset:0;
+    background:repeating-linear-gradient(0deg,rgba(0,0,0,.0) 0 6px,rgba(0,0,0,.12) 6px 7px);}
+  #stageCanvas{position:absolute;inset:0;width:100%;height:100%;image-rendering:pixelated;}
+  .nameplate{position:absolute;font-family:'Press Start 2P';font-size:8px;z-index:3;}
+  #dragonPlate{top:12px;right:14px;color:#ff7a6a;text-align:right;}
+  #heroPlate{bottom:12px;left:14px;}
+  .bar{width:150px;height:13px;background:#0c0818;border:2px solid #000;margin-top:5px;position:relative;}
+  .bar i{position:absolute;inset:1px;width:100%;transition:width .4s;display:block;}
+  #dragonHpFill{background:var(--dragon-hp);}
+  #heroHpFill{background:var(--hp-good);}
+  .hpnum{font-size:13px;color:var(--ink-dim);margin-top:2px;}
+
+  .qpanel{padding:14px 16px 16px;}
+  .turnflag{font-family:'Press Start 2P';font-size:8px;color:var(--gold);margin-bottom:8px;letter-spacing:1px;}
+  .turnflag.def{color:#ff7a6a;}
+  #questionText{font-size:21px;line-height:1.3;min-height:54px;margin-bottom:12px;}
+  .answers{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+  .ans{border:2px solid var(--panel-edge);background:#150e28;padding:10px 11px;cursor:pointer;font-size:18px;
+    display:flex;gap:8px;align-items:center;transition:border-color .08s,background .08s;}
+  .ans:hover{border-color:var(--gold);}
+  .ans .key{font-family:'Press Start 2P';font-size:10px;color:var(--gold);}
+  .ans.correct{border-color:var(--correct);background:#16331f;color:#bff5cc;}
+  .ans.wrong{border-color:var(--wrong);background:#33161a;color:#f5c0c0;}
+  .ans.disabled{pointer-events:none;opacity:.85;}
+
+  .freeform{display:flex;flex-direction:column;gap:8px;}
+  #answerInput{width:100%;min-height:64px;resize:none;background:#120c20;border:2px solid var(--panel-edge);
+    color:var(--ink);font-family:'VT323';font-size:20px;padding:10px;outline:none;}
+  #answerInput:focus{border-color:var(--gold);}
+  .ff-row{display:flex;gap:8px;align-items:center;}
+  .ff-row .hint{margin:0;text-align:left;flex:1;}
+
+  .verdict{font-size:19px;margin-top:10px;min-height:24px;line-height:1.25;}
+  .verdict .v{font-family:'Press Start 2P';font-size:11px;}
+  .verdict .v.correct{color:var(--correct);} .verdict .v.partial{color:var(--partial);} .verdict .v.wrong{color:var(--wrong);}
+  .verdict .quip{color:var(--ink-dim);display:block;margin-top:4px;}
+
+  .thinking{font-size:19px;color:#9a72ea;min-height:54px;display:flex;align-items:center;gap:8px;}
+  .dot{width:7px;height:7px;background:#9a72ea;display:inline-block;animation:blink 1s steps(2) infinite;}
+  .dot:nth-child(2){animation-delay:.2s;} .dot:nth-child(3){animation-delay:.4s;}
+  @keyframes blink{0%,50%{opacity:1;}50.01%,100%{opacity:.2;}}
+
+  /* ---------- END ---------- */
+  #endScreen{padding:26px 18px 30px;text-align:center;}
+  #endTitle{font-family:'Press Start 2P';font-size:22px;line-height:1.6;margin-bottom:8px;}
+  #endTitle.win{color:var(--gold);text-shadow:2px 2px 0 #5a3a0a,0 0 18px rgba(232,194,90,.4);}
+  #endTitle.lose{color:var(--wrong);text-shadow:2px 2px 0 #3a0a0a;}
+  #endSub{font-size:21px;color:var(--ink-dim);margin-bottom:8px;line-height:1.15;}
+  #endStats{font-size:19px;margin-bottom:18px;line-height:1.5;}
+  #endStats b{color:var(--gold);}
+  #endReview{font-size:18px;color:var(--ink-dim);line-height:1.35;margin-bottom:20px;
+    border-top:2px solid var(--panel-edge);border-bottom:2px solid var(--panel-edge);padding:12px 6px;}
+
+  .btnrow{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;}
+  .btn{font-family:'Press Start 2P';font-size:11px;letter-spacing:1px;
+    background:linear-gradient(180deg,#e8c25a,#caa233);color:#241400;border:none;padding:14px 18px;cursor:pointer;
+    box-shadow:0 5px 0 #7a5e12,0 6px 0 #000;transition:transform .06s steps(2),box-shadow .06s;}
+  .btn:active{transform:translateY(4px);box-shadow:0 1px 0 #7a5e12,0 2px 0 #000;}
+  .btn.ghost{background:linear-gradient(180deg,#2a1c46,#1a1230);color:var(--ink);box-shadow:0 5px 0 #0c0818,0 6px 0 #000;}
+  .btn[disabled]{opacity:.4;cursor:not-allowed;}
