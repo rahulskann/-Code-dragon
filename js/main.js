@@ -15,7 +15,8 @@ function startBattle(clsKey){
 
   // hero HUD theming
   const d=HERO_DATA[clsKey];
-  $('heroName').textContent=d.name+' · '+d.role;
+  const resumeMode = (typeof RESUME_MODE!=='undefined' && RESUME_MODE);
+  $('heroName').textContent = resumeMode ? d.name : (d.name+' · '+d.role);
   $('heroName').style.color=({mage:'#9a72ea',fighter:'#ff6a52',thief:'#46d36b'})[clsKey];
   $('heroPortrait').style.boxShadow='inset 0 0 0 1px '+({mage:'#7d4fd6',fighter:'#d23b3b',thief:'#2fa06b'})[clsKey];
   // draw portrait (scaled)
@@ -70,8 +71,37 @@ $('againBtn').addEventListener('click',()=>startBattle(hero.key));
 $('classBtn').addEventListener('click',()=>{
   $('endScreen').style.display='none';
   $('battleScreen').style.display='none';
+  refreshSelectScreenForMode();
   $('selectScreen').style.display='block';
 });
+
+/* In Résumé Mode the three sprites are just avatars / fighting styles — the
+   quiz comes from the user's résumé, not the class domain. So reframe the
+   select-screen copy and hide the domain role + flavour blurb. In every other
+   mode the original "choose your class" framing is restored. Called whenever
+   the select screen is shown (from setup and from the NEW CLASS button). */
+let _selOrig = null;
+function refreshSelectScreenForMode(){
+  const prompt = document.querySelector('#selectScreen .prompt');
+  const hint   = document.querySelector('#selectScreen .hint');
+  if(_selOrig===null){
+    _selOrig = { prompt: prompt?prompt.innerHTML:'', hint: hint?hint.innerHTML:'' };
+  }
+  const resume = (typeof RESUME_MODE!=='undefined' && RESUME_MODE);
+  if(resume){
+    if(prompt) prompt.innerHTML =
+      'Your <b>résumé</b> is loaded. Pick an <b>avatar</b> to fight as —<br>the dragon quizzes you on <b>your own projects</b>.';
+    if(hint) hint.innerHTML =
+      'Your avatar is just a fighting style. Every question is drawn from the résumé you pasted — not the class.';
+  } else {
+    if(prompt) prompt.innerHTML = _selOrig.prompt;
+    if(hint)   hint.innerHTML   = _selOrig.hint;
+  }
+  // hide the domain job-title + flavour text in résumé mode (they imply a domain-specific quiz)
+  document.querySelectorAll('#cards .role, #cards .blurb').forEach(el=>{
+    el.style.display = resume ? 'none' : '';
+  });
+}
 
 /* HOME — leave a fight in progress and return to class select.
    Nothing is saved: a new fight fully re-initializes in startBattle(). */

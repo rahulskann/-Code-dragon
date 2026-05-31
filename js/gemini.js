@@ -17,7 +17,11 @@ const GEMINI = {
   key: "",
 };
 let AI_MODE = false;
+let RESUME_MODE = false;                 // a flavour of AI mode: questions built from the user's résumé
+const RESUME_CTX = { resume:"", jd:"" }; // the pasted résumé + optional job description
 const LS_KEY = "codeDragonGeminiKey";
+const LS_RESUME = "codeDragonResume";
+const LS_JD = "codeDragonJD";
 
 const gid = id => document.getElementById(id);
 
@@ -57,10 +61,27 @@ async function geminiCall(promptText, schema){
 /* ---------- public helpers used by battle.js ---------- */
 async function geminiGenerateQuestion(classKey, kind){
   const topic = GEMINI_TOPIC[classKey] || GEMINI_TOPIC.mage;
-  const prompt =
-    "You are a tech interviewer. Generate ONE concise interview question about " + topic + ". " +
-    "It must be answerable in 1-3 sentences. Do NOT include the answer. " +
-    "Avoid repeating common textbook phrasings; make it feel like a real interview.";
+  let prompt;
+  if(RESUME_MODE && RESUME_CTX.resume){
+    // Personalized: build a real-world scenario out of the candidate's own work.
+    // Topic is NOT tied to the chosen avatar — it's inferred from the résumé/JD.
+    prompt =
+      "You are a senior tech interviewer running a PERSONALIZED interview.\n" +
+      "Base the question entirely on the candidate's own work below — infer their field and stack from it; " +
+      "do NOT assume a fixed topic or domain.\n" +
+      "Here is the candidate's RÉSUMÉ / project list:\n\"\"\"\n" + RESUME_CTX.resume.slice(0,4000) + "\n\"\"\"\n" +
+      (RESUME_CTX.jd ? "Here is the TARGET JOB DESCRIPTION (bias toward these skills):\n\"\"\"\n" + RESUME_CTX.jd.slice(0,2000) + "\n\"\"\"\n" : "") +
+      "Pick ONE specific project, technology, or responsibility from their résumé and turn it into a realistic, " +
+      "ON-THE-JOB problem they could hit in real time — an incident, a scaling or performance issue, a nasty bug, " +
+      "a design tradeoff, or a decision under pressure. Reference their actual work by name so it feels tailored to them, " +
+      "and make them reason through it rather than recite a definition. Answerable in 2-4 sentences. " +
+      "Do NOT include the answer. Return only the question.";
+  } else {
+    prompt =
+      "You are a tech interviewer. Generate ONE concise interview question about " + topic + ". " +
+      "It must be answerable in 1-3 sentences. Do NOT include the answer. " +
+      "Avoid repeating common textbook phrasings; make it feel like a real interview.";
+  }
   const schema = { type:"object", properties:{ question:{type:"string"} }, required:["question"] };
   const out = await geminiCall(prompt, schema);
   return out.question;
@@ -68,8 +89,13 @@ async function geminiGenerateQuestion(classKey, kind){
 
 async function geminiGradeAnswer(classKey, question, answer){
   const topic = GEMINI_TOPIC[classKey] || GEMINI_TOPIC.mage;
+  const resume = (RESUME_MODE && RESUME_CTX.resume);
+  const head = resume
+    ? "You are a strict but fair technical interviewer. This question was drawn from the candidate's own résumé, " +
+      "so judge whether they reason like someone who actually did the work (infer the relevant field from the question).\n"
+    : "You are a strict but fair interviewer grading a candidate on " + topic + ".\n";
   const prompt =
-    "You are a strict but fair interviewer grading a candidate on " + topic + ".\n" +
+    head +
     "QUESTION: " + question + "\nCANDIDATE ANSWER: " + (answer || "(left blank)") + "\n" +
     "Grade it. \"correct\" = solid and accurate; \"partial\" = right idea but incomplete or vague; " +
     "\"wrong\" = incorrect or empty. " +
@@ -83,8 +109,11 @@ async function geminiGradeAnswer(classKey, question, answer){
 
 async function geminiReview(classKey, stats){
   const topic = GEMINI_TOPIC[classKey] || GEMINI_TOPIC.mage;
+  const subject = (RESUME_MODE && RESUME_CTX.resume)
+    ? "their own résumé projects and real-world scenarios"
+    : topic;
   const prompt =
-    "A candidate just finished a mock interview (a boss-fight game) on " + topic + ". " +
+    "A candidate just finished a mock interview (a boss-fight game) on " + subject + ". " +
     "They answered " + stats.correct + " well and missed " + stats.wrong + ". " +
     "Write a 2-sentence performance review: one thing they did well and the single topic to study next. " +
     "Encouraging, plain English.";
@@ -100,12 +129,17 @@ function geminiLocalKey(){
 }
 
 function geminiSetMode(mode){
-  AI_MODE = (mode === "ai");
-  const a = gid("optAI"), c = gid("optClassic"), kw = gid("keyWrap");
-  if(a) a.classList.toggle("sel", AI_MODE);
-  if(c) c.classList.toggle("sel", !AI_MODE);
+  // "ai" and "resume" both use Gemini free-text; only "resume" pulls in the résumé.
+  AI_MODE = (mode === "ai" || mode === "resume");
+  RESUME_MODE = (mode === "resume");
+  const a = gid("optAI"), c = gid("optClassic"), r = gid("optResume");
+  const kw = gid("keyWrap"), rw = gid("resumeWrap");
+  if(a) a.classList.toggle("sel", mode === "ai");
+  if(c) c.classList.toggle("sel", mode === "classic");
+  if(r) r.classList.toggle("sel", mode === "resume");
   const hasLocal = !!geminiLocalKey();
-  if(kw) kw.style.display = (AI_MODE && !hasLocal) ? "block" : "none";
+  if(kw) kw.style.display = (AI_MODE && !hasLocal) ? "block" : "none";  // both AI flavours need a key
+  if(rw) rw.style.display = RESUME_MODE ? "block" : "none";
 }
 
 function geminiLoadKey(){
@@ -133,11 +167,24 @@ let _geminiSetupDone = false;
 function geminiInitSetup(){
   if(_geminiSetupDone) return;
   _geminiSetupDone = true;
-  const a = gid("optAI"), c = gid("optClassic");
+  const a = gid("optAI"), c = gid("optClassic"), r = gid("optResume");
   if(a){ a.addEventListener("click", ()=>geminiSetMode("ai"));
          a.addEventListener("keydown", e=>{ if(e.key==="Enter"||e.key===" ") geminiSetMode("ai"); }); }
   if(c){ c.addEventListener("click", ()=>geminiSetMode("classic"));
          c.addEventListener("keydown", e=>{ if(e.key==="Enter"||e.key===" ") geminiSetMode("classic"); }); }
+  if(r){ r.addEventListener("click", ()=>geminiSetMode("resume"));
+         r.addEventListener("keydown", e=>{ if(e.key==="Enter"||e.key===" ") geminiSetMode("resume"); }); }
+
+  // résumé / job-description fields: restore saved text and keep RESUME_CTX in sync as the user types
+  const rin = gid("resumeInput"), jin = gid("jdInput");
+  try {
+    const sr = localStorage.getItem(LS_RESUME) || "";
+    const sj = localStorage.getItem(LS_JD) || "";
+    if(rin && sr){ rin.value = sr; RESUME_CTX.resume = sr; }
+    if(jin && sj){ jin.value = sj; RESUME_CTX.jd = sj; }
+  } catch(e){}
+  if(rin) rin.addEventListener("input", ()=>{ RESUME_CTX.resume=(rin.value||"").trim(); try{localStorage.setItem(LS_RESUME, RESUME_CTX.resume);}catch(e){} });
+  if(jin) jin.addEventListener("input", ()=>{ RESUME_CTX.jd=(jin.value||"").trim(); try{localStorage.setItem(LS_JD, RESUME_CTX.jd);}catch(e){} });
 
   const test = gid("keyTest");
   if(test) test.addEventListener("click", async ()=>{
@@ -173,6 +220,17 @@ function geminiInitSetup(){
         }
       }
     }
+    if(RESUME_MODE){
+      const ri = gid("resumeInput"), ji = gid("jdInput");
+      RESUME_CTX.resume = ri ? (ri.value || "").trim() : "";
+      RESUME_CTX.jd     = ji ? (ji.value || "").trim() : "";
+      try { localStorage.setItem(LS_RESUME, RESUME_CTX.resume); localStorage.setItem(LS_JD, RESUME_CTX.jd); } catch(e){}
+      if(!RESUME_CTX.resume){
+        const st = gid("resumeStatus");
+        if(st){ st.textContent = "No résumé pasted — you'll get general AI questions instead of personalized ones."; st.className = "bad"; }
+      }
+    }
+    if(typeof refreshSelectScreenForMode==="function") refreshSelectScreenForMode();
     gid("setupScreen").style.display = "none";
     gid("selectScreen").style.display = "block";
   });

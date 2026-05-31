@@ -295,8 +295,20 @@
   .toggle h4{ font-family:'Press Start 2P',monospace; font-size:10px; margin-bottom:7px; }
   .toggle.aiopt h4{ color:#9a72ea; } .toggle.aiopt.sel h4{ text-shadow:0 0 10px rgba(154,114,234,.6); }
   .toggle.classicopt h4{ color:var(--gold); }
+  .toggle.resumeopt h4{ color:#5fd0e6; } .toggle.resumeopt.sel h4{ text-shadow:0 0 10px rgba(95,208,230,.6); }
   .toggle p{ font-size:15px; color:var(--ink-dim); line-height:1.15; }
   .keyrow{ display:flex; gap:8px; margin-bottom:8px; }
+  #resumeWrap{ margin-bottom:6px; }
+  .resumeArea{
+    width:100%; box-sizing:border-box; resize:vertical;
+    background:#120c20; border:2px solid var(--panel-edge); color:var(--ink);
+    font-family:'VT323',monospace; font-size:18px; line-height:1.25; padding:10px 12px;
+    outline:none; margin-bottom:8px; min-height:120px;
+  }
+  .resumeArea.jd{ min-height:64px; }
+  .resumeArea:focus{ border-color:#5fd0e6; }
+  #resumeStatus{ font-size:15px; min-height:18px; margin-bottom:6px; color:var(--ink-dim); }
+  #resumeStatus.ok{ color:var(--correct); } #resumeStatus.bad{ color:var(--wrong); }
   #keyInput, #voiceKey{ flex:1; background:#120c20; border:2px solid var(--panel-edge); color:var(--ink); font-family:'VT323',monospace; font-size:19px; padding:9px 11px; outline:none; }
   #keyInput:focus, #voiceKey:focus{ border-color:var(--gold); }
   #keyTest, #voiceSave{ font-size:9px; padding:8px 12px; }

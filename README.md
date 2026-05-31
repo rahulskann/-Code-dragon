@@ -85,13 +85,19 @@ the normal manual entry on the setup screen.
 
 ## ✦ AI Mode (Google Gemini) — added
 
-On launch you now pick **AI Mode** or **Classic** on a setup screen.
+On launch you now pick **AI Mode**, **Résumé Mode**, or **Classic** on a setup screen.
 
-- **Classic** — the original multiple-choice game, unchanged, fully offline.
+- **Classic** — the original multiple-choice game, unchanged, fully offline. **Keeps the countdown timer.**
 - **AI Mode** — Google Gemini (`gemini-2.5-flash`) writes an open-ended interview
   question each turn, you **type** your answer, and Gemini grades it
   (correct / partial / wrong) and talks back in-character as the dragon. You also
-  get a short Gemini performance review on the end screen.
+  get a short Gemini performance review on the end screen. **Untimed** — answer at your own pace.
+- **Résumé Mode** — same as AI Mode, but you paste your **résumé / project bullets**
+  (and, optionally, a **job description**). Gemini picks a real project of yours and turns it into a
+  live, on-the-job problem scenario — an incident, a scaling issue, a tricky bug, a design tradeoff —
+  so you reason like you would on the job instead of reciting definitions. Also **untimed**.
+  Needs a Gemini key, just like AI Mode; with no résumé pasted it gracefully falls back to general AI questions.
+  Your résumé/JD text is stored only in your browser's localStorage.
 
 Paste a free key from **aistudio.google.com → "Get API key"** on the setup screen
 (stored only in your browser's localStorage). If there's no key, the network

@@ -21,11 +21,15 @@
   <!-- ====== SETUP (Gemini key + mode) ====== -->
   <section id="setupScreen">
     <div class="prompt">How should the <b>dragon</b> test you?</div>
-    <div class="setup-note">AI Mode uses <b>Google Gemini</b> to ask open-ended questions and grade what you type — like a real interview, and the dragon talks back. Classic Mode is multiple-choice and works fully offline.</div>
+    <div class="setup-note"><b>AI Mode</b> uses <b>Google Gemini</b> to ask open-ended questions and grade what you type — the dragon talks back. <b>Résumé Mode</b> goes further: paste your résumé and it grills you on <b>your own projects</b> with real-world problem scenarios. <b>Classic</b> is multiple-choice and works fully offline. (AI &amp; Résumé modes are untimed; Classic keeps the timer.)</div>
     <div class="toggle-row">
       <div class="toggle aiopt" id="optAI" tabindex="0">
         <h4>✦ AI MODE</h4>
         <p>Type your answers. Gemini grades them.</p>
+      </div>
+      <div class="toggle resumeopt" id="optResume" tabindex="0">
+        <h4>✦ RÉSUMÉ</h4>
+        <p>Questions built from YOUR projects.</p>
       </div>
       <div class="toggle classicopt sel" id="optClassic" tabindex="0">
         <h4>CLASSIC</h4>
@@ -38,6 +42,12 @@
         <button class="btn ghost" id="keyTest">TEST</button>
       </div>
       <div id="keyStatus"></div>
+    </div>
+    <div id="resumeWrap" style="display:none">
+      <div class="setup-note" style="margin-top:14px;">Paste your <b>résumé</b> (or a few project bullets). The dragon turns your real work into live, on-the-job problem scenarios — incidents, scaling pains, tricky bugs, design tradeoffs — so you reason instead of reciting. A <b>job description</b> is optional and steers questions toward that role.</div>
+      <textarea id="resumeInput" class="resumeArea" placeholder="Paste your résumé or project bullets here…  (e.g. 'Built a React dashboard with WebSocket live updates', 'Migrated a Postgres monolith to microservices', 'Set up OAuth + rate limiting on the public API')"></textarea>
+      <textarea id="jdInput" class="resumeArea jd" placeholder="(Optional) Paste the target job description to focus the questions on that role…"></textarea>
+      <div id="resumeStatus"></div>
     </div>
     <div id="voiceWrap">
       <div class="setup-note" style="margin-top:18px;">Optional: paste an <b>ElevenLabs</b> key to give the heroes &amp; dragon real voices — they speak when you hover a class and when blows land in battle.</div>

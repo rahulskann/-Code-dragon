@@ -118,7 +118,8 @@ function askQuestionMC(item, {timeLimit, special}){
       wrap.appendChild(b); btns.push(b);
     });
 
-    // timer
+    // timer (Classic keeps the countdown)
+    const tw=$('timerWrap'); if(tw) tw.style.display='';
     const fill=$('timerFill'); fill.style.transform='scaleX(1)';
     clearInterval(timerHandle);
     const start=performance.now();
@@ -155,6 +156,8 @@ async function askQuestionAI(kind, {timeLimit, special}){
   // generate the question
   $('answers').innerHTML='';
   $('qText').innerHTML='<span class="aiThinking">⏳ The dragon conjures a challenge…</span>';
+  // AI / Résumé rounds are untimed — hide the countdown bar entirely.
+  const _tw=$('timerWrap'); if(_tw) _tw.style.display='none';
   $('timerFill').style.transform='scaleX(1)';
   let qtext;
   try { qtext = await geminiGenerateQuestion(hero.key, kind); }
@@ -174,15 +177,9 @@ async function askQuestionAI(kind, {timeLimit, special}){
     wrap.appendChild(ta); wrap.appendChild(btn);
     ta.focus();
 
-    const fill=$('timerFill'); fill.style.transform='scaleX(1)';
-    clearInterval(timerHandle);
-    const start=performance.now();
-    timerHandle=setInterval(()=>{
-      const elapsed=(performance.now()-start)/1000;
-      const frac=clamp(1-elapsed/timeLimit,0,1);
-      fill.style.transform='scaleX('+frac+')';
-      if(frac<=0){ submit(true); }
-    },80);
+    // No timer in AI / Résumé mode — answer at your own pace, like a real interview.
+    const tw=$('timerWrap'); if(tw) tw.style.display='none';
+    clearInterval(timerHandle);   // kill any leftover Classic timer
 
     let done=false;
     async function submit(timedOut){
@@ -217,8 +214,12 @@ async function askQuestionAI(kind, {timeLimit, special}){
 function chooseMove(){
   return new Promise(resolve=>{
     const tag=$('qTag'); tag.textContent='CHARGED!'; tag.className='spc pixel';
+    const aiNoTimer = (typeof AI_MODE!=='undefined' && AI_MODE && GEMINI.key);
+    const tw=$('timerWrap'); if(tw) tw.style.display = aiNoTimer ? 'none' : '';
     $('timerFill').style.transform='scaleX(1)';
-    $('qText').innerHTML='Your special is charged. Risk the <b>fast '+SPECIAL_TIME+'s timer</b> for <b>DOUBLE</b> damage — or take a safe swing and bank it?';
+    $('qText').innerHTML = aiNoTimer
+      ? 'Your special is charged. Risk a <b>high-stakes</b> question for <b>DOUBLE</b> damage — or take a safe swing and bank it?'
+      : 'Your special is charged. Risk the <b>fast '+SPECIAL_TIME+'s timer</b> for <b>DOUBLE</b> damage — or take a safe swing and bank it?';
     const wrap=$('answers'); wrap.innerHTML='';
     const u=document.createElement('button');
     u.className='moveBtn unleash'; u.innerHTML='⚡ UNLEASH SPECIAL ⚡';
@@ -325,7 +326,10 @@ async function playerTurn(){
   if(useSpecial){
     resetCharge();
     stats.specialsUsed++;
-    setLogWait('<span class="hot">Channeling everything — answer FAST!</span>');
+    const _aiNoTimer = (typeof AI_MODE!=='undefined' && AI_MODE && GEMINI.key);
+    setLogWait(_aiNoTimer
+      ? '<span class="hot">Channeling everything — make this answer count!</span>'
+      : '<span class="hot">Channeling everything — answer FAST!</span>');
     const hit = await askQuestion('attack',{special:true, timeLimit:SPECIAL_TIME});
     if(hit){
       const dmg = DMG.atkStrong*SPECIAL_MULT;
