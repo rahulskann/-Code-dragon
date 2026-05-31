@@ -44,8 +44,13 @@
       <div id="keyStatus"></div>
     </div>
     <div id="resumeWrap" style="display:none">
-      <div class="setup-note" style="margin-top:14px;">Paste your <b>résumé</b> (or a few project bullets). The dragon turns your real work into live, on-the-job problem scenarios — incidents, scaling pains, tricky bugs, design tradeoffs — so you reason instead of reciting. A <b>job description</b> is optional and steers questions toward that role.</div>
-      <textarea id="resumeInput" class="resumeArea" placeholder="Paste your résumé or project bullets here…  (e.g. 'Built a React dashboard with WebSocket live updates', 'Migrated a Postgres monolith to microservices', 'Set up OAuth + rate limiting on the public API')"></textarea>
+      <div class="setup-note" style="margin-top:14px;"><b>Upload your résumé PDF</b> (or paste the text below). The dragon turns your real work into live, on-the-job problem scenarios — incidents, scaling pains, tricky bugs, design tradeoffs — so you reason instead of reciting. A <b>job description</b> is optional and steers questions toward that role.</div>
+      <div class="resumeUpload">
+        <label class="btn ghost" id="resumePdfLabel" for="resumePdfInput">⇪ Upload résumé PDF</label>
+        <input id="resumePdfInput" type="file" accept="application/pdf,.pdf" style="display:none">
+        <span id="resumePdfStatus" class="resumePdfStatus"></span>
+      </div>
+      <textarea id="resumeInput" class="resumeArea" placeholder="…or paste your résumé / project bullets here  (e.g. 'Built a React dashboard with WebSocket live updates', 'Migrated a Postgres monolith to microservices', 'Set up OAuth + rate limiting on the public API')"></textarea>
       <textarea id="jdInput" class="resumeArea jd" placeholder="(Optional) Paste the target job description to focus the questions on that role…"></textarea>
       <div id="resumeStatus"></div>
     </div>
@@ -141,6 +146,7 @@
   <script src="js/voices.js"></script>
   <script src="js/questions.js"></script>
   <script src="js/gemini.js"></script>
+  <script src="js/resume-pdf.js"></script>
   <script src="js/battle.js"></script>
   <script src="js/main.js"></script>
 </body>
