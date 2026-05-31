@@ -38,28 +38,28 @@ const ELEVEN = {
 /* Per character: a voiceId, optional voice_settings, and lines per event.
    Events: hover | attack | hurt. One line is picked at random each time. */
 const VOICES = {
-  mage: {
-    voiceId: "m3OZYhKGRczbC3OjDu5g",                 // default preset "Rachel"
-    settings: { stability: 0.40, similarity_boost: 0.75, style: 0.35 },
-    lines: {
-      hover:  ["I weave the interface from light itself.",
-               "The front end bends to my will, adventurer."],
-      attack: ["Behold — a flawless render!",
-               "Reflow, repaint, destroy!"],
-      hurt:   ["My layout… shattered!",
-               "Ugh — my styles are bleeding!"],
-    },
+mage: {
+  voiceId: "m3OZYhKGRczbC3OjDu5g",
+  settings: { stability: 0.40, similarity_boost: 0.75, style: 0.35 },
+  lines: {
+    hover:  ["Your data flows through me — I am the gate.",
+             "Come then. My endpoints hunger for a request."],
+    attack: ["Query executed. You are DELETED.",
+             "Two hundred OK — you are NOT!"],
+    hurt:   ["Five hundred… the server screams!",
+             "Argh — null pointer in my SOUL!"],
   },
-  fighter: {
-    voiceId: "awYfxnQdPQUXY9tdhnBr",                 // default preset "Adam"
-    settings: { stability: 0.55, similarity_boost: 0.80, style: 0.25 },
-    lines: {
-      hover:  ["I hold the line at the server gate.",
-               "Throw your traffic at me. I will not fall."],
-      attack: ["Two hundred — and one CREATED!",
-               "Your request is handled, beast!"],
-      hurt:   ["Five hundred… internal error!",
-               "Argh — the server's going down!"],
+},
+fighter: {
+  voiceId: "awYfxnQdPQUXY9tdhnBr",
+  settings: { stability: 0.55, similarity_boost: 0.80, style: 0.25 },
+  lines: {
+    hover:  ["I've shipped to production. I fear nothing.",
+             "My CSS is honed to a razor's edge."],
+    attack: ["Pixel perfect — and LETHAL!",
+             "Rendered, painted, and DESTROYED!"],
+    hurt:   ["My layout… it's broken on mobile!",
+             "Ugh — who touched my z-index?!"],
     },
   },
   thief: {
