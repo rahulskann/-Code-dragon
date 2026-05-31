@@ -5,7 +5,7 @@
 const HERO_DATA = {
   mage: {
     name:"MAGE", role:"Back-End Engineer",
-    blurb:"Weaver of pixels, layouts & reactive spells.",
+    blurb:"Weaver of servers, data & uptime.",
     color:"var(--mage)", projectile:"orb", proj:"#5fe6ff",
     palette:{ P:'#7d4fd6', p:'#9a72ea', C:'#36d6e7', S:'#f2c9a0', K:'#241133', B:'#3a2a55' },
     map:[
@@ -29,7 +29,7 @@ const HERO_DATA = {
   },
   fighter: {
     name:"FIGHTER", role:"Front-End Engineer",
-    blurb:"Iron-clad keeper of servers, data & uptime.",
+    blurb:"Iron-clad keeper of pixels, layouts & reactive spells.", 
     color:"var(--fighter)", projectile:"melee", proj:"#fff2c0",
     palette:{ A:'#8a93a6', R:'#d23b3b', S:'#f2c9a0', K:'#1a1d28', G:'#e2b53c', B:'#444a59' },
     map:[
