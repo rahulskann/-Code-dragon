@@ -3,7 +3,7 @@
    QUESTION BANK
    ============================================================ */
 const QUESTIONS = {
-  mage:[ // Front-End
+  fighter:[ // Front-End
     {q:"Which CSS property sets space INSIDE an element, between content and its border?",
      a:["margin","padding","gap","border-spacing"],c:1},
     {q:"In JavaScript, what extra check does `===` do that `==` does not?",
@@ -25,7 +25,7 @@ const QUESTIONS = {
     {q:"Which method stops an event from bubbling up the DOM?",
      a:["preventDefault()","stopPropagation()","returnFalse()","cancelBubble()"],c:1},
   ],
-  fighter:[ // Back-End
+  mage:[ // Back-End
     {q:"Which HTTP method is idempotent and replaces a resource entirely?",
      a:["POST","PATCH","PUT","CONNECT"],c:2},
     {q:"What does HTTP status code 404 mean?",
