@@ -9,14 +9,11 @@ async function callGemini(promptText, schema){
   const ctrl = new AbortController();
   const t = setTimeout(()=>ctrl.abort(), GEMINI.timeoutMs);
   try{
-    const res = await fetch(GEMINI.endpoint(GEMINI.model), {
-      method:"POST",
-      headers:{ "Content-Type":"application/json", "x-goog-api-key": state.apiKey },
+    const res = await fetch("/api/gemini", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
       signal: ctrl.signal,
-      body: JSON.stringify({
-        contents:[{ role:"user", parts:[{ text: promptText }] }],
-        generationConfig:{ responseMimeType:"application/json", responseSchema: schema, temperature: 0.9 }
-      })
+      body: JSON.stringify({ prompt: promptText, schema })
     });
     clearTimeout(t);
     if(!res.ok){ throw new Error("HTTP "+res.status); }

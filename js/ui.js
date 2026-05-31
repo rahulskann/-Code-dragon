@@ -46,7 +46,6 @@ function setMode(mode){
   state.mode = mode;
   $('optAI').classList.toggle('sel', mode==="ai");
   $('optClassic').classList.toggle('sel', mode==="classic");
-  $('keyWrap').style.display = mode==="ai" ? "block" : "none";
   const tag=$('modeTag');
   tag.textContent = mode==="ai" ? "✦ GEMINI AI" : "CLASSIC";
   tag.classList.toggle('ai', mode==="ai");
@@ -56,11 +55,11 @@ $('optClassic').addEventListener('click', ()=>setMode("classic"));
 $('optAI').addEventListener('keydown', e=>{if(e.key==="Enter"||e.key===" ")setMode("ai");});
 $('optClassic').addEventListener('keydown', e=>{if(e.key==="Enter"||e.key===" ")setMode("classic");});
 
-// preload saved key
-(function(){ const k=lsGet(LS_KEY); if(k){ $('keyInput').value=k; state.apiKey=k; $('keyStatus').textContent="Saved key loaded."; $('keyStatus').className="ok"; } })();
-
-// preload saved ElevenLabs voice key + wire its save/test button
-(function(){ const k=getElevenKey(); if(k){ $('voiceKey').value=k; $('voiceStatus').textContent="Saved voice key loaded — characters will speak."; $('voiceStatus').className="ok"; } })();
+// preload saved ElevenLabs voice key
+(function(){
+  const vk = getElevenKey();
+  if(vk){ $('voiceKey').value = vk; $('voiceStatus').textContent = "Saved voice key loaded — characters will speak."; $('voiceStatus').className = "ok"; }
+})();
 
 $('voiceSave').addEventListener('click', async ()=>{
   const k=$('voiceKey').value.trim();
@@ -75,23 +74,7 @@ $('voiceSave').addEventListener('click', async ()=>{
   }
 });
 
-$('keySave').addEventListener('click', async ()=>{
-  const k=$('keyInput').value.trim();
-  if(!k){ $('keyStatus').textContent="Paste a key first."; $('keyStatus').className="bad"; return; }
-  state.apiKey=k; lsSet(LS_KEY,k);
-  $('keyStatus').textContent="Testing key…"; $('keyStatus').className="";
-  try{
-    await callGemini("Reply with JSON {\"ok\":true}.", {type:"object",properties:{ok:{type:"boolean"}},required:["ok"]});
-    $('keyStatus').textContent="✓ Key works — Gemini connected."; $('keyStatus').className="ok";
-  }catch(e){
-    $('keyStatus').textContent="✗ Couldn't reach Gemini (key, quota, or network). Game will fall back to the question bank."; $('keyStatus').className="bad";
-  }
-});
-
 $('toSelect').addEventListener('click', ()=>{
-  if(state.mode==="ai" && !state.apiKey){
-    $('keyStatus').textContent="No key set — running AI Mode with the offline bank as fallback."; $('keyStatus').className="bad";
-  }
   show('selectScreen');
 });
 
