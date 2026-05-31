@@ -71,9 +71,23 @@ $('againBtn').addEventListener('click',()=>startBattle(hero.key));
 $('classBtn').addEventListener('click',()=>{
   $('endScreen').style.display='none';
   $('battleScreen').style.display='none';
+  // Résumé Mode has no class to pick — go back to setup so they can edit/re-upload
+  // the résumé or switch modes, instead of the (skipped) avatar-select screen.
+  if(typeof RESUME_MODE!=='undefined' && RESUME_MODE){
+    $('setupScreen').style.display='block';
+    return;
+  }
   refreshSelectScreenForMode();
   $('selectScreen').style.display='block';
 });
+
+/* Relabel the end-screen "NEW CLASS" button to match the mode. */
+function refreshEndScreenForMode(){
+  const btn = document.getElementById('classBtn');
+  if(!btn) return;
+  const resume = (typeof RESUME_MODE!=='undefined' && RESUME_MODE);
+  btn.textContent = resume ? 'EDIT RÉSUMÉ' : 'NEW CLASS';
+}
 
 /* In Résumé Mode the three sprites are just avatars / fighting styles — the
    quiz comes from the user's résumé, not the class domain. So reframe the

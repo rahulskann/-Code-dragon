@@ -96,8 +96,76 @@ function resumePdfInit(){
   });
 }
 
-document.addEventListener("DOMContentLoaded", resumePdfInit);
-if(document.readyState !== "loading") resumePdfInit();
+/* read a File -> base64 (no data: prefix), for Gemini inlineData */
+function _fileToBase64(file){
+  return new Promise(function(resolve, reject){
+    const r = new FileReader();
+    r.onload = function(){
+      const res = String(r.result || "");
+      const comma = res.indexOf(",");
+      resolve(comma >= 0 ? res.slice(comma + 1) : res);
+    };
+    r.onerror = function(){ reject(new Error("couldn't read the image file")); };
+    r.readAsDataURL(file);
+  });
+}
+
+const JD_MAX_BYTES = 5 * 1024 * 1024;   // 5 MB cap to keep the request reasonable
+
+/* Job-description IMAGE upload: send the screenshot/photo to Gemini's vision
+   model to transcribe its text, then drop that into the editable #jdInput box.
+   Pasting text still works exactly as before. */
+function jdImageInit(){
+  const input  = document.getElementById("jdImgInput");
+  const status = document.getElementById("jdImgStatus");
+  const ta     = document.getElementById("jdInput");
+  const label  = document.getElementById("jdImgLabel");
+  if(!input || !ta) return;
+
+  input.addEventListener("change", async function(){
+    const file = input.files && input.files[0];
+    if(!file) return;
+    const looksImg = (file.type && file.type.indexOf("image/") === 0) || /\.(png|jpe?g|webp|gif|bmp|heic|heif)$/i.test(file.name);
+    if(!looksImg){ _pdfStatus(status, "Please choose an image file.", "bad"); input.value = ""; return; }
+    if(file.size > JD_MAX_BYTES){ _pdfStatus(status, "Image is too large (max 5 MB). Try a smaller screenshot.", "bad"); input.value = ""; return; }
+
+    // need a way to reach Gemini for the transcription
+    if(typeof geminiReachable !== "function" || !geminiReachable()){
+      _pdfStatus(status, "Reading an image needs a Gemini key — add one above (or deploy the server key), or just paste the text below.", "bad");
+      input.value = "";
+      return;
+    }
+
+    _pdfStatus(status, "🐉 Reading “" + file.name + "” with Gemini…", "");
+    if(label) label.style.opacity = "0.6";
+    try {
+      const b64 = await _fileToBase64(file);
+      const mime = file.type || "image/png";
+      const instruction =
+        "This image is a job description. Transcribe ALL of its text as plain text, " +
+        "preserving headings and bullet points where possible. Do not summarize, add, " +
+        "or comment — output only the transcribed text.";
+      const text = await geminiVisionToText(b64, mime, instruction);
+      if(!text || text.length < 10){
+        _pdfStatus(status, "Couldn't read much text from that image. Try a clearer screenshot, or paste the text below.", "bad");
+      } else {
+        ta.value = text;
+        ta.dispatchEvent(new Event("input", { bubbles: true }));   // sync RESUME_CTX.jd + localStorage
+        const n = text.length.toLocaleString();
+        _pdfStatus(status, "✓ Read " + n + " characters from “" + file.name + "”. Edit below if needed.", "ok");
+      }
+    } catch(e){
+      _pdfStatus(status, "Couldn't read the image (" + ((e && e.message) || e) + "). Paste the text below instead.", "bad");
+    } finally {
+      if(label) label.style.opacity = "";
+      input.value = "";
+    }
+  });
+}
+
+function _resumeUploadsInit(){ resumePdfInit(); jdImageInit(); }
+document.addEventListener("DOMContentLoaded", _resumeUploadsInit);
+if(document.readyState !== "loading") _resumeUploadsInit();
 
 /* harmless in the browser (no `module`); enables unit testing under Node */
 if(typeof module !== "undefined" && module.exports){

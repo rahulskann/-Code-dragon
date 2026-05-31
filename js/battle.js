@@ -7,6 +7,13 @@ const QTIME = 20;           // seconds per normal question
 const SPECIAL_TIME = 8;     // harsher timer for the special attack
 const SPECIAL_NEEDED = 3;   // correct answers to charge the meter
 const SPECIAL_MULT = 2;     // double damage on a special hit
+// How long the dragon's written feedback (quip + verdict) stays on screen before
+// the turn advances, in AI / Résumé mode. Generous so the player can read it.
+// (Classic multiple-choice uses its own short flash and is unaffected.)
+const AI_FEEDBACK_MS = { correct: 2600, wrong: 3200 };
+// Résumé Mode skips class selection (the avatar is cosmetic there); this is the
+// single character it plays as. Change to 'fighter' or 'thief' if you prefer.
+const RESUME_DEFAULT_CLASS = 'mage';
 
 let stats = {correct:0, wrong:0, rounds:0, specialsUsed:0};
 let qDeck = [];          // shuffled remaining questions for current class
@@ -211,7 +218,10 @@ async function askQuestionAI(kind, {timeLimit, special}){
       if(correct){ stats.correct++; Sfx.correct(); } else { stats.wrong++; Sfx.wrong(); }
       const vClass = verdict==='correct'?'ok':verdict==='partial'?'hot':'bad';
       if(quip) setLog('🐉 “'+quip+'” <span class="'+vClass+'">['+verdict.toUpperCase()+']</span>');
-      setTimeout(()=>{ $('qPanel').classList.remove('special'); resolve(correct); }, correct?520:760);
+      // Give the player time to actually READ the dragon's feedback before the
+      // turn advances. AI/Résumé answers are graded with a written quip + verdict,
+      // so this pause is much longer than the Classic multiple-choice flash.
+      setTimeout(()=>{ $('qPanel').classList.remove('special'); resolve(correct); }, correct?AI_FEEDBACK_MS.correct:AI_FEEDBACK_MS.wrong);
     }
     btn.addEventListener('click',()=>submit(false));
     ta.addEventListener('keydown',e=>{ if(e.key==='Enter' && !e.shiftKey){ e.preventDefault(); submit(false); } });
@@ -433,6 +443,7 @@ function endBattle(win){
   setTimeout(()=>{
     $('battleScreen').style.display='none';
     const es=$('endScreen'); es.style.display='block';
+    if(typeof refreshEndScreenForMode==='function') refreshEndScreenForMode();
     const t=$('endTitle'), s=$('endSub'), st=$('endStats');
     if(win){ t.textContent='VICTORY!'; t.className='win pixel';
       s.textContent='The offer letter is yours, '+HERO_DATA[hero.key].name+'.'; }

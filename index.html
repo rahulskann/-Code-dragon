@@ -51,7 +51,12 @@
         <span id="resumePdfStatus" class="resumePdfStatus"></span>
       </div>
       <textarea id="resumeInput" class="resumeArea" placeholder="…or paste your résumé / project bullets here  (e.g. 'Built a React dashboard with WebSocket live updates', 'Migrated a Postgres monolith to microservices', 'Set up OAuth + rate limiting on the public API')"></textarea>
-      <textarea id="jdInput" class="resumeArea jd" placeholder="(Optional) Paste the target job description to focus the questions on that role…"></textarea>
+      <div class="resumeUpload">
+        <label class="btn ghost" id="jdImgLabel" for="jdImgInput">🖼 Upload job description image</label>
+        <input id="jdImgInput" type="file" accept="image/*" style="display:none">
+        <span id="jdImgStatus" class="resumePdfStatus"></span>
+      </div>
+      <textarea id="jdInput" class="resumeArea jd" placeholder="(Optional) Upload a screenshot above, or paste the target job description here to focus the questions on that role…"></textarea>
       <div id="resumeStatus"></div>
     </div>
     <div id="voiceWrap">

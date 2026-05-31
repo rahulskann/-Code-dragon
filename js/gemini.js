@@ -78,6 +78,62 @@ function aiAvailable(){
          (!!GEMINI.key || (typeof BACKEND !== "undefined" && BACKEND.gemini));
 }
 
+/* True when we have *some* way to reach Gemini, regardless of mode. Used by the
+   job-description image upload, which can run during setup before a mode kicks in. */
+function geminiReachable(){
+  return !!GEMINI.key || !!geminiLocalKey() ||
+         (typeof BACKEND !== "undefined" && BACKEND.gemini);
+}
+
+/* ---------- Gemini vision: transcribe an image to plain text ----------
+   Used to turn an uploaded job-description screenshot/photo into editable text.
+   Sends a base64 image part + an instruction, and returns the raw transcription
+   (no JSON schema — we want plain text back). Routes through the /api/gemini
+   proxy when the server holds the key, else calls Gemini directly with a key. */
+async function geminiVisionToText(base64Data, mimeType, instruction){
+  const ctrl = new AbortController();
+  const t = setTimeout(()=>ctrl.abort(), 20000);   // vision is slower; allow more time
+  const useServer = (typeof BACKEND !== "undefined" && BACKEND.gemini);
+  const payload = {
+    contents:[{ role:"user", parts:[
+      { text: instruction },
+      { inlineData: { mimeType: mimeType, data: base64Data } },
+    ]}],
+    generationConfig:{ temperature: 0.1 },   // faithful transcription, not creative
+  };
+  try{
+    let res;
+    if(useServer){
+      res = await fetch("/api/gemini", {
+        method:"POST",
+        headers:{ "Content-Type":"application/json" },
+        signal: ctrl.signal,
+        body: JSON.stringify({ model: GEMINI.model, payload }),
+      });
+    } else {
+      const apiKey = GEMINI.key || geminiLocalKey();
+      if(!apiKey) throw new Error("no Gemini key available");
+      res = await fetch(GEMINI.endpoint(GEMINI.model), {
+        method:"POST",
+        headers:{ "Content-Type":"application/json", "x-goog-api-key": apiKey },
+        signal: ctrl.signal,
+        body: JSON.stringify(payload),
+      });
+    }
+    clearTimeout(t);
+    if(!res.ok){
+      let detail=""; try{ detail = (await res.text()).slice(0,200); }catch(e){}
+      throw new Error("HTTP " + res.status + (detail ? (" — " + detail) : ""));
+    }
+    const data = await res.json();
+    const txt = data && data.candidates && data.candidates[0] &&
+                data.candidates[0].content && data.candidates[0].content.parts &&
+                data.candidates[0].content.parts[0] && data.candidates[0].content.parts[0].text;
+    if(!txt) throw new Error("empty response");
+    return txt.trim();
+  } catch(e){ clearTimeout(t); throw e; }
+}
+
 /* ---------- public helpers used by battle.js ---------- */
 async function geminiGenerateQuestion(classKey, kind){
   const topic = GEMINI_TOPIC[classKey] || GEMINI_TOPIC.mage;
@@ -294,6 +350,15 @@ function geminiInitSetup(){
         const st = gid("resumeStatus");
         if(st){ st.textContent = "No résumé pasted — you'll get general AI questions instead of personalized ones."; st.className = "bad"; }
       }
+    }
+    // Résumé Mode: the class is purely cosmetic (questions come from the résumé),
+    // so skip the three-avatar select screen and drop straight into battle with a
+    // single default character.
+    if(RESUME_MODE){
+      gid("setupScreen").style.display = "none";
+      const def = (typeof RESUME_DEFAULT_CLASS !== "undefined") ? RESUME_DEFAULT_CLASS : "mage";
+      if(typeof startBattle === "function") startBattle(def);
+      return;
     }
     if(typeof refreshSelectScreenForMode==="function") refreshSelectScreenForMode();
     gid("setupScreen").style.display = "none";
