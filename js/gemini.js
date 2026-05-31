@@ -251,7 +251,7 @@ function geminiInitSetup(){
   // open file picker on button click
   if(pickBtn) pickBtn.addEventListener("click", ()=>{ if(rin) rin.click(); });
 
-  // handle PDF selection
+  // handle PDF selection — extract raw text via regex on the binary stream (no CDN needed)
   if(rin) rin.addEventListener("change", async ()=>{
     const file = rin.files && rin.files[0];
     if(!file) return;
@@ -259,25 +259,57 @@ function geminiInitSetup(){
     if(st){ st.textContent = "Reading PDF…"; st.className = ""; }
     if(fileName) fileName.textContent = "";
     try {
-      if(typeof pdfjsLib === "undefined") throw new Error("PDF.js did not load — try refreshing.");
-      const arrayBuffer = await file.arrayBuffer();
-      const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
-      let text = "";
-      for(let i = 1; i <= pdf.numPages; i++){
-        const page = await pdf.getPage(i);
-        const tc = await page.getTextContent();
-        text += tc.items.map(s => s.str).join(" ") + "
-";
-      }
-      RESUME_CTX.resume = text.trim();
+      const text = await extractPdfText(file);
+      if(!text || text.length < 20) throw new Error("No readable text found in PDF. Try copy-pasting your résumé as text instead.");
+      RESUME_CTX.resume = text;
       if(fileName) fileName.textContent = "✓ " + file.name;
-      if(st){ st.textContent = "✓ PDF read (" + pdf.numPages + " page" + (pdf.numPages > 1 ? "s" : "") + ")."; st.className = "ok"; }
+      if(st){ st.textContent = "✓ PDF read — " + text.length + " characters extracted."; st.className = "ok"; }
     } catch(err) {
       RESUME_CTX.resume = "";
       if(fileName) fileName.textContent = "";
       if(st){ st.textContent = "Could not read PDF: " + (err.message || err); st.className = "bad"; }
     }
   });
+
+  // Extracts plain text from a PDF file using the browser's native APIs only (no CDN).
+  // Works on text-based PDFs; scanned image PDFs will return little/no text.
+  async function extractPdfText(file){
+    const ab = await file.arrayBuffer();
+    const bytes = new Uint8Array(ab);
+    // decode as latin-1 so every byte round-trips intact
+    let raw = "";
+    for(let i = 0; i < bytes.length; i++) raw += String.fromCharCode(bytes[i]);
+
+    // pull out all BT...ET blocks (PDF text objects)
+    const chunks = [];
+    const btRe = /BT[\s\S]*?ET/g;
+    let m;
+    while((m = btRe.exec(raw)) !== null){
+      const block = m[0];
+      // match Tj, TJ, ' and " operators
+      const strRe = /\(((?:[^\)]|\[\s\S])*)\)\s*(?:Tj|'|")|(\[(?:[^\]]*)\])\s*TJ/g;
+      let sm;
+      while((sm = strRe.exec(block)) !== null){
+        if(sm[1] !== undefined){
+          chunks.push(decodePdfStr(sm[1]));
+        } else if(sm[2] !== undefined){
+          // TJ array: extract string literals inside
+          const arrRe = /\(((?:[^\)]|\[\s\S])*)\)/g;
+          let am;
+          while((am = arrRe.exec(sm[2])) !== null) chunks.push(decodePdfStr(am[1]));
+        }
+      }
+    }
+    return chunks.join(" ").replace(/\s+/g, " ").trim();
+  }
+
+  function decodePdfStr(s){
+    // unescape PDF string escapes
+    return s
+      .replace(/\n/g, " ").replace(/\r/g, " ").replace(/\t/g, " ")
+      .replace(/\([0-7]{1,3})/g, (_, o) => String.fromCharCode(parseInt(o, 8)))
+      .replace(/\(.)/g, "$1");
+  }
 
   const test = gid("keyTest");
   if(test) test.addEventListener("click", async ()=>{
