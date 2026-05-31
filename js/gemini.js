@@ -32,10 +32,11 @@ const GEMINI_TOPIC = {
 async function geminiCall(promptText, schema){
   const ctrl = new AbortController();
   const t = setTimeout(()=>ctrl.abort(), GEMINI.timeoutMs);
+  const apiKey = GEMINI.key || geminiLocalKey();   // local config key as a safety net
   try{
     const res = await fetch(GEMINI.endpoint(GEMINI.model), {
       method:"POST",
-      headers:{ "Content-Type":"application/json", "x-goog-api-key": GEMINI.key },
+      headers:{ "Content-Type":"application/json", "x-goog-api-key": apiKey },
       signal: ctrl.signal,
       body: JSON.stringify({
         contents:[{ role:"user", parts:[{ text: promptText }] }],
@@ -93,18 +94,23 @@ async function geminiReview(classKey, stats){
 }
 
 /* ---------- setup screen wiring ---------- */
+function geminiLocalKey(){
+  return (typeof window!=="undefined" && window.LOCAL_KEYS && window.LOCAL_KEYS.gemini)
+    ? String(window.LOCAL_KEYS.gemini).trim() : "";
+}
+
 function geminiSetMode(mode){
   AI_MODE = (mode === "ai");
   const a = gid("optAI"), c = gid("optClassic"), kw = gid("keyWrap");
   if(a) a.classList.toggle("sel", AI_MODE);
   if(c) c.classList.toggle("sel", !AI_MODE);
-  const hasLocal = (typeof window!=="undefined" && window.LOCAL_KEYS && window.LOCAL_KEYS.gemini && String(window.LOCAL_KEYS.gemini).trim());
+  const hasLocal = !!geminiLocalKey();
   if(kw) kw.style.display = (AI_MODE && !hasLocal) ? "block" : "none";
 }
 
 function geminiLoadKey(){
   // 1) prefer a key supplied by the git-ignored local config file
-  const local = (typeof window!=="undefined" && window.LOCAL_KEYS && window.LOCAL_KEYS.gemini) ? String(window.LOCAL_KEYS.gemini).trim() : "";
+  const local = geminiLocalKey();
   if(local){
     GEMINI.key = local;
     geminiSetMode("ai");
@@ -153,12 +159,18 @@ function geminiInitSetup(){
   const go = gid("toSelect");
   if(go) go.addEventListener("click", ()=>{
     if(AI_MODE){
-      GEMINI.key = (gid("keyInput").value || "").trim();
-      try { localStorage.setItem(LS_KEY, GEMINI.key); } catch(e){}
-      if(!GEMINI.key){
-        const st = gid("keyStatus");
-        st.textContent = "No key set — AI Mode will use the offline bank as fallback.";
-        st.className = "bad";
+      const local = geminiLocalKey();
+      if(local){
+        // key comes from config.local.js — keep it; do NOT read the (hidden) input box
+        GEMINI.key = local;
+      } else {
+        GEMINI.key = (gid("keyInput").value || "").trim();
+        try { localStorage.setItem(LS_KEY, GEMINI.key); } catch(e){}
+        if(!GEMINI.key){
+          const st = gid("keyStatus");
+          st.textContent = "No key set — AI Mode will use the offline bank as fallback.";
+          st.className = "bad";
+        }
       }
     }
     gid("setupScreen").style.display = "none";
