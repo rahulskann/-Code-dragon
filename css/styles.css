@@ -326,3 +326,35 @@
   .ans.aiSubmit.correct{ border-color:var(--correct); }
   .ans.aiSubmit.wrong{ border-color:var(--wrong); }
   .aiThinking{ color:#9a72ea; }
+
+/* ── résumé file upload area ── */
+.resumeUploadArea {
+  border: 2px dashed var(--gold);
+  border-radius: 8px;
+  padding: 22px 16px;
+  text-align: center;
+  cursor: pointer;
+  margin: 12px 0 8px;
+  transition: background 0.15s, border-color 0.15s;
+  color: var(--ink-dim);
+  font-family: var(--font-body);
+  font-size: 15px;
+  line-height: 1.5;
+}
+.resumeUploadArea:hover,
+.resumeUploadArea.dragover {
+  background: rgba(255, 210, 60, 0.07);
+  border-color: var(--accent);
+}
+.uploadIcon { font-size: 28px; }
+.uploadLink {
+  color: var(--gold);
+  text-decoration: underline;
+  cursor: pointer;
+}
+#resumeFileChosen {
+  font-family: var(--font-body);
+  font-size: 14px;
+  color: var(--ok);
+  padding: 4px 0;
+}

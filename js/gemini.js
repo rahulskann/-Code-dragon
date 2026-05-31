@@ -18,9 +18,8 @@ const GEMINI = {
 };
 let AI_MODE = false;
 let RESUME_MODE = false;                 // a flavour of AI mode: questions built from the user's résumé
-const RESUME_CTX = { resume:"", jd:"" }; // the pasted résumé + optional job description
+const RESUME_CTX = { resume:"", jd:"", imageBase64:"", imageMime:"" }; // résumé text or image + optional JD
 const LS_KEY = "codeDragonGeminiKey";
-const LS_RESUME = "codeDragonResume";
 const LS_JD = "codeDragonJD";
 
 const gid = id => document.getElementById(id);
@@ -33,12 +32,15 @@ const GEMINI_TOPIC = {
 };
 
 /* ---------- low-level call ---------- */
-async function geminiCall(promptText, schema){
+async function geminiCall(promptText, schema, extraParts){
   const ctrl = new AbortController();
   const t = setTimeout(()=>ctrl.abort(), GEMINI.timeoutMs);
   const useServer = (typeof BACKEND !== "undefined" && BACKEND.gemini);
+  const parts = [];
+  if(extraParts && extraParts.length) parts.push(...extraParts);
+  parts.push({ text: promptText });
   const payload = {
-    contents:[{ role:"user", parts:[{ text: promptText }] }],
+    contents:[{ role:"user", parts }],
     generationConfig:{ responseMimeType:"application/json", responseSchema: schema, temperature: 0.9 },
   };
   try{
@@ -103,7 +105,11 @@ async function geminiGenerateQuestion(classKey, kind){
       "Avoid repeating common textbook phrasings; make it feel like a real interview.";
   }
   const schema = { type:"object", properties:{ question:{type:"string"} }, required:["question"] };
-  const out = await geminiCall(prompt, schema);
+  // If the user uploaded a résumé image, pass it as a vision part so Gemini can read it directly
+  const imgParts = (RESUME_MODE && RESUME_CTX.imageBase64)
+    ? [{ inlineData:{ mimeType: RESUME_CTX.imageMime, data: RESUME_CTX.imageBase64 } }]
+    : [];
+  const out = await geminiCall(prompt, schema, imgParts);
   return out.question;
 }
 
@@ -237,16 +243,88 @@ function geminiInitSetup(){
   if(r){ r.addEventListener("click", ()=>geminiSetMode("resume"));
          r.addEventListener("keydown", e=>{ if(e.key==="Enter"||e.key===" ") geminiSetMode("resume"); }); }
 
-  // résumé / job-description fields: restore saved text and keep RESUME_CTX in sync as the user types
+  // résumé file upload wiring
   const rin = gid("resumeInput"), jin = gid("jdInput");
+  const dropZone = gid("resumeDropZone"), dropLabel = gid("resumeDropLabel");
+  const fileChosen = gid("resumeFileChosen"), browseBtn = gid("resumeBrowse");
+
+  // restore saved JD text
   try {
-    const sr = localStorage.getItem(LS_RESUME) || "";
     const sj = localStorage.getItem(LS_JD) || "";
-    if(rin && sr){ rin.value = sr; RESUME_CTX.resume = sr; }
     if(jin && sj){ jin.value = sj; RESUME_CTX.jd = sj; }
   } catch(e){}
-  if(rin) rin.addEventListener("input", ()=>{ RESUME_CTX.resume=(rin.value||"").trim(); try{localStorage.setItem(LS_RESUME, RESUME_CTX.resume);}catch(e){} });
   if(jin) jin.addEventListener("input", ()=>{ RESUME_CTX.jd=(jin.value||"").trim(); try{localStorage.setItem(LS_JD, RESUME_CTX.jd);}catch(e){} });
+
+  // clicking the "browse" link or the drop zone opens the file picker
+  if(browseBtn) browseBtn.addEventListener("click", (e)=>{ e.stopPropagation(); rin && rin.click(); });
+  if(dropZone) dropZone.addEventListener("click", ()=>{ rin && rin.click(); });
+
+  // drag-and-drop
+  if(dropZone){
+    dropZone.addEventListener("dragover", e=>{ e.preventDefault(); dropZone.classList.add("dragover"); });
+    dropZone.addEventListener("dragleave", ()=>dropZone.classList.remove("dragover"));
+    dropZone.addEventListener("drop", e=>{
+      e.preventDefault(); dropZone.classList.remove("dragover");
+      const file = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
+      if(file) handleResumeFile(file);
+    });
+  }
+
+  if(rin) rin.addEventListener("change", ()=>{
+    const file = rin.files && rin.files[0];
+    if(file) handleResumeFile(file);
+  });
+
+  async function handleResumeFile(file){
+    const st = gid("resumeStatus");
+    if(st){ st.textContent = "Reading file…"; st.className = ""; }
+    if(dropLabel) dropLabel.style.display = "none";
+    if(fileChosen){ fileChosen.style.display = ""; fileChosen.textContent = "📄 " + file.name; }
+
+    try {
+      if(file.type === "application/pdf"){
+        // Extract text using PDF.js
+        const arrayBuffer = await file.arrayBuffer();
+        const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+        let text = "";
+        for(let i = 1; i <= pdf.numPages; i++){
+          const page = await pdf.getPage(i);
+          const tc = await page.getTextContent();
+          text += tc.items.map(s=>s.str).join(" ") + "
+";
+        }
+        RESUME_CTX.resume = text.trim();
+        RESUME_CTX.imageBase64 = "";
+        RESUME_CTX.imageMime = "";
+        if(st){ st.textContent = "✓ PDF read (" + pdf.numPages + " page" + (pdf.numPages>1?"s":"") + ")."; st.className = "ok"; }
+      } else if(file.type.startsWith("image/")){
+        // Store as base64 — Gemini vision will read it directly
+        const b64 = await new Promise((res, rej)=>{
+          const r = new FileReader();
+          r.onload = ()=> res(r.result.split(",")[1]);
+          r.onerror = rej;
+          r.readAsDataURL(file);
+        });
+        RESUME_CTX.imageBase64 = b64;
+        RESUME_CTX.imageMime = file.type;
+        RESUME_CTX.resume = "[image résumé uploaded — Gemini will read it directly]";
+        if(st){ st.textContent = "✓ Image loaded — Gemini will read it."; st.className = "ok"; }
+      } else {
+        if(st){ st.textContent = "Unsupported file type. Please upload a PDF or image."; st.className = "bad"; }
+        resetResumeFile();
+        return;
+      }
+    } catch(err){
+      if(st){ st.textContent = "Could not read file: " + (err.message || err); st.className = "bad"; }
+      resetResumeFile();
+    }
+  }
+
+  function resetResumeFile(){
+    RESUME_CTX.resume = ""; RESUME_CTX.imageBase64 = ""; RESUME_CTX.imageMime = "";
+    if(dropLabel) dropLabel.style.display = "";
+    if(fileChosen){ fileChosen.style.display = "none"; fileChosen.textContent = ""; }
+  }
 
   const test = gid("keyTest");
   if(test) test.addEventListener("click", async ()=>{
@@ -286,10 +364,9 @@ function geminiInitSetup(){
       }
     }
     if(RESUME_MODE){
-      const ri = gid("resumeInput"), ji = gid("jdInput");
-      RESUME_CTX.resume = ri ? (ri.value || "").trim() : "";
-      RESUME_CTX.jd     = ji ? (ji.value || "").trim() : "";
-      try { localStorage.setItem(LS_RESUME, RESUME_CTX.resume); localStorage.setItem(LS_JD, RESUME_CTX.jd); } catch(e){}
+      const ji = gid("jdInput");
+      RESUME_CTX.jd = ji ? (ji.value || "").trim() : "";
+      try { localStorage.setItem(LS_JD, RESUME_CTX.jd); } catch(e){}
       if(!RESUME_CTX.resume){
         const st = gid("resumeStatus");
         if(st){ st.textContent = "No résumé pasted — you'll get general AI questions instead of personalized ones."; st.className = "bad"; }

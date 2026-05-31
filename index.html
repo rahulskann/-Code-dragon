@@ -44,8 +44,16 @@
       <div id="keyStatus"></div>
     </div>
     <div id="resumeWrap" style="display:none">
-      <div class="setup-note" style="margin-top:14px;">Paste your <b>résumé</b> (or a few project bullets). The dragon turns your real work into live, on-the-job problem scenarios — incidents, scaling pains, tricky bugs, design tradeoffs — so you reason instead of reciting. A <b>job description</b> is optional and steers questions toward that role.</div>
-      <textarea id="resumeInput" class="resumeArea" placeholder="Paste your résumé or project bullets here…  (e.g. 'Built a React dashboard with WebSocket live updates', 'Migrated a Postgres monolith to microservices', 'Set up OAuth + rate limiting on the public API')"></textarea>
+      <div class="setup-note" style="margin-top:14px;">Upload your <b>résumé</b> (PDF or image). The dragon turns your real work into live, on-the-job problem scenarios — incidents, scaling pains, tricky bugs, design tradeoffs — so you reason instead of reciting. A <b>job description</b> is optional and steers questions toward that role.</div>
+      <div class="resumeUploadArea" id="resumeDropZone">
+        <input type="file" id="resumeInput" accept=".pdf,image/*" style="display:none">
+        <div id="resumeDropLabel">
+          <span class="uploadIcon">📄</span><br>
+          <b>Drop your résumé here</b> or <span class="uploadLink" id="resumeBrowse">browse</span><br>
+          <small>PDF or image (PNG, JPG, etc.)</small>
+        </div>
+        <div id="resumeFileChosen" style="display:none"></div>
+      </div>
       <textarea id="jdInput" class="resumeArea jd" placeholder="(Optional) Paste the target job description to focus the questions on that role…"></textarea>
       <div id="resumeStatus"></div>
     </div>
@@ -125,6 +133,9 @@
   <!-- Ordered classic scripts sharing one global scope.
        Splitting is purely organizational — behavior is identical.
        Load order = dependency order; do not reorder casually. -->
+  <!-- PDF.js for client-side PDF text extraction -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+  <script>if(typeof pdfjsLib!=="undefined") pdfjsLib.GlobalWorkerOptions.workerSrc="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";</script>
   <script src="js/core.js"></script>
   <!-- optional local keys (git-ignored). If js/config.local.js is missing,
        this 404s harmlessly and the on-screen key fields are used instead. -->
