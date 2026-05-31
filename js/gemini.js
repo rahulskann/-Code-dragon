@@ -18,8 +18,9 @@ const GEMINI = {
 };
 let AI_MODE = false;
 let RESUME_MODE = false;                 // a flavour of AI mode: questions built from the user's résumé
-const RESUME_CTX = { resume:"", jd:"", imageBase64:"", imageMime:"" }; // résumé text or image + optional JD
+const RESUME_CTX = { resume:"", jd:"" }; // the pasted résumé + optional job description
 const LS_KEY = "codeDragonGeminiKey";
+const LS_RESUME = "codeDragonResume";
 const LS_JD = "codeDragonJD";
 
 const gid = id => document.getElementById(id);
@@ -32,15 +33,12 @@ const GEMINI_TOPIC = {
 };
 
 /* ---------- low-level call ---------- */
-async function geminiCall(promptText, schema, extraParts){
+async function geminiCall(promptText, schema){
   const ctrl = new AbortController();
   const t = setTimeout(()=>ctrl.abort(), GEMINI.timeoutMs);
   const useServer = (typeof BACKEND !== "undefined" && BACKEND.gemini);
-  const parts = [];
-  if(extraParts && extraParts.length) parts.push(...extraParts);
-  parts.push({ text: promptText });
   const payload = {
-    contents:[{ role:"user", parts }],
+    contents:[{ role:"user", parts:[{ text: promptText }] }],
     generationConfig:{ responseMimeType:"application/json", responseSchema: schema, temperature: 0.9 },
   };
   try{
@@ -105,11 +103,7 @@ async function geminiGenerateQuestion(classKey, kind){
       "Avoid repeating common textbook phrasings; make it feel like a real interview.";
   }
   const schema = { type:"object", properties:{ question:{type:"string"} }, required:["question"] };
-  // If the user uploaded a résumé image, pass it as a vision part so Gemini can read it directly
-  const imgParts = (RESUME_MODE && RESUME_CTX.imageBase64)
-    ? [{ inlineData:{ mimeType: RESUME_CTX.imageMime, data: RESUME_CTX.imageBase64 } }]
-    : [];
-  const out = await geminiCall(prompt, schema, imgParts);
+  const out = await geminiCall(prompt, schema);
   return out.question;
 }
 
@@ -243,88 +237,46 @@ function geminiInitSetup(){
   if(r){ r.addEventListener("click", ()=>geminiSetMode("resume"));
          r.addEventListener("keydown", e=>{ if(e.key==="Enter"||e.key===" ") geminiSetMode("resume"); }); }
 
-  // résumé file upload wiring
+  // résumé PDF upload + job-description field wiring
   const rin = gid("resumeInput"), jin = gid("jdInput");
-  const dropZone = gid("resumeDropZone"), dropLabel = gid("resumeDropLabel");
-  const fileChosen = gid("resumeFileChosen"), browseBtn = gid("resumeBrowse");
+  const pickBtn = gid("resumePickBtn"), fileName = gid("resumeFileName");
 
-  // restore saved JD text
+  // restore saved JD
   try {
     const sj = localStorage.getItem(LS_JD) || "";
     if(jin && sj){ jin.value = sj; RESUME_CTX.jd = sj; }
   } catch(e){}
   if(jin) jin.addEventListener("input", ()=>{ RESUME_CTX.jd=(jin.value||"").trim(); try{localStorage.setItem(LS_JD, RESUME_CTX.jd);}catch(e){} });
 
-  // clicking the "browse" link or the drop zone opens the file picker
-  if(browseBtn) browseBtn.addEventListener("click", (e)=>{ e.stopPropagation(); rin && rin.click(); });
-  if(dropZone) dropZone.addEventListener("click", ()=>{ rin && rin.click(); });
+  // open file picker on button click
+  if(pickBtn) pickBtn.addEventListener("click", ()=>{ if(rin) rin.click(); });
 
-  // drag-and-drop
-  if(dropZone){
-    dropZone.addEventListener("dragover", e=>{ e.preventDefault(); dropZone.classList.add("dragover"); });
-    dropZone.addEventListener("dragleave", ()=>dropZone.classList.remove("dragover"));
-    dropZone.addEventListener("drop", e=>{
-      e.preventDefault(); dropZone.classList.remove("dragover");
-      const file = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
-      if(file) handleResumeFile(file);
-    });
-  }
-
-  if(rin) rin.addEventListener("change", ()=>{
+  // handle PDF selection
+  if(rin) rin.addEventListener("change", async ()=>{
     const file = rin.files && rin.files[0];
-    if(file) handleResumeFile(file);
-  });
-
-  async function handleResumeFile(file){
+    if(!file) return;
     const st = gid("resumeStatus");
-    if(st){ st.textContent = "Reading file…"; st.className = ""; }
-    if(dropLabel) dropLabel.style.display = "none";
-    if(fileChosen){ fileChosen.style.display = ""; fileChosen.textContent = "📄 " + file.name; }
-
+    if(st){ st.textContent = "Reading PDF…"; st.className = ""; }
+    if(fileName) fileName.textContent = "";
     try {
-      if(file.type === "application/pdf"){
-        // Extract text using PDF.js
-        const arrayBuffer = await file.arrayBuffer();
-        const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
-        let text = "";
-        for(let i = 1; i <= pdf.numPages; i++){
-          const page = await pdf.getPage(i);
-          const tc = await page.getTextContent();
-          text += tc.items.map(s=>s.str).join(" ") + "
+      const arrayBuffer = await file.arrayBuffer();
+      const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+      let text = "";
+      for(let i = 1; i <= pdf.numPages; i++){
+        const page = await pdf.getPage(i);
+        const tc = await page.getTextContent();
+        text += tc.items.map(s => s.str).join(" ") + "
 ";
-        }
-        RESUME_CTX.resume = text.trim();
-        RESUME_CTX.imageBase64 = "";
-        RESUME_CTX.imageMime = "";
-        if(st){ st.textContent = "✓ PDF read (" + pdf.numPages + " page" + (pdf.numPages>1?"s":"") + ")."; st.className = "ok"; }
-      } else if(file.type.startsWith("image/")){
-        // Store as base64 — Gemini vision will read it directly
-        const b64 = await new Promise((res, rej)=>{
-          const r = new FileReader();
-          r.onload = ()=> res(r.result.split(",")[1]);
-          r.onerror = rej;
-          r.readAsDataURL(file);
-        });
-        RESUME_CTX.imageBase64 = b64;
-        RESUME_CTX.imageMime = file.type;
-        RESUME_CTX.resume = "[image résumé uploaded — Gemini will read it directly]";
-        if(st){ st.textContent = "✓ Image loaded — Gemini will read it."; st.className = "ok"; }
-      } else {
-        if(st){ st.textContent = "Unsupported file type. Please upload a PDF or image."; st.className = "bad"; }
-        resetResumeFile();
-        return;
       }
-    } catch(err){
-      if(st){ st.textContent = "Could not read file: " + (err.message || err); st.className = "bad"; }
-      resetResumeFile();
+      RESUME_CTX.resume = text.trim();
+      if(fileName) fileName.textContent = "✓ " + file.name;
+      if(st){ st.textContent = "✓ PDF read (" + pdf.numPages + " page" + (pdf.numPages > 1 ? "s" : "") + ")."; st.className = "ok"; }
+    } catch(err) {
+      RESUME_CTX.resume = "";
+      if(fileName) fileName.textContent = "";
+      if(st){ st.textContent = "Could not read PDF: " + (err.message || err); st.className = "bad"; }
     }
-  }
-
-  function resetResumeFile(){
-    RESUME_CTX.resume = ""; RESUME_CTX.imageBase64 = ""; RESUME_CTX.imageMime = "";
-    if(dropLabel) dropLabel.style.display = "";
-    if(fileChosen){ fileChosen.style.display = "none"; fileChosen.textContent = ""; }
-  }
+  });
 
   const test = gid("keyTest");
   if(test) test.addEventListener("click", async ()=>{
@@ -365,6 +317,7 @@ function geminiInitSetup(){
     }
     if(RESUME_MODE){
       const ji = gid("jdInput");
+      // RESUME_CTX.resume is already set by the PDF upload handler — don't overwrite it here
       RESUME_CTX.jd = ji ? (ji.value || "").trim() : "";
       try { localStorage.setItem(LS_JD, RESUME_CTX.jd); } catch(e){}
       if(!RESUME_CTX.resume){
