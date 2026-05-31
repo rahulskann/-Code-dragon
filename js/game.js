@@ -27,9 +27,10 @@ async function nextRound(){
     try{
       question = await aiGenerateQuestion(classKey, difficulty);
     }catch(e){
-      // graceful fallback to bank
+      // if AI generation fails, show a visible fallback message and use the bank
       bankItem = pickBank(classKey);
       question = bankItem.q;
+      $('turnFlag').textContent = "⚠ AI unavailable — using fallback bank questions.";
     }
   }else{
     bankItem = pickBank(classKey);

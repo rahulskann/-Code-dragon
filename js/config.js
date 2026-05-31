@@ -8,6 +8,7 @@ const GEMINI = {
   model: "gemini-2.5-flash",
   timeoutMs: 12000,
 };
+const LS_GEMINI_KEY = "codeDragonGeminiKey";
 
 let state = {
   mode: "classic",        // "ai" | "classic"
@@ -17,6 +18,7 @@ let state = {
   history: [],            // {q, verdict} for the end review
   muted: false,
   busy: false,
+  apiKey: "",
 };
 
 const $ = (id) => document.getElementById(id);
