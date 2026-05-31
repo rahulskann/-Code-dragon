@@ -61,7 +61,7 @@
     <div style="text-align:center;margin-top:8px">
       <button class="btn" id="toSelect">ENTER THE LAIR ▶</button>
     </div>
-    <div class="hint">Free key at <b>aistudio.google.com</b> → “Get API key”. It's stored only in your browser.</div>
+    <div class="hint" id="keyHint">Free key at <b>aistudio.google.com</b> → “Get API key”. It's stored only in your browser.</div>
   </section>
 
   <!-- ====== SELECT ====== -->
@@ -129,6 +129,8 @@
   <!-- optional local keys (git-ignored). If js/config.local.js is missing,
        this 404s harmlessly and the on-screen key fields are used instead. -->
   <script src="js/config.local.js"></script>
+  <!-- detects a Vercel /api proxy (server-side keys) and reconfigures the key UI -->
+  <script src="js/backend.js"></script>
   <script src="js/sprites-hero.js"></script>
   <script src="js/sprites-dragon.js"></script>
   <script src="js/entities.js"></script>

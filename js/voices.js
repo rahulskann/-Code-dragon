@@ -95,8 +95,12 @@ function _localElevenKey(){ return (typeof window!=="undefined" && window.LOCAL_
 function getElevenKey(){ const l=_localElevenKey(); if(l) return l; try { return localStorage.getItem(ELEVEN.lsKey) || ""; } catch(e){ return ""; } }
 function setElevenKey(k){ try { localStorage.setItem(ELEVEN.lsKey, k || ""); } catch(e){} }
 
-/* voices are silent when there's no key, or when sound is muted */
-function _voiceOff(){ return !getElevenKey() || (typeof Sfx!=="undefined" && Sfx.isMuted && Sfx.isMuted()); }
+/* voices are silent when there's no way to reach ElevenLabs, or when muted.
+   "A way to reach it" = a client key (config.local.js / typed) OR the server proxy. */
+function _voicesAvailable(){
+  return !!getElevenKey() || (typeof BACKEND !== "undefined" && BACKEND.eleven);
+}
+function _voiceOff(){ return !_voicesAvailable() || (typeof Sfx!=="undefined" && Sfx.isMuted && Sfx.isMuted()); }
 
 /* ---------- clip cache (each unique line fetched once, then replayed free) ---------- */
 const _clipCache = new Map();                        // "voiceId|text" -> blob URL
@@ -104,19 +108,31 @@ const _clipCache = new Map();                        // "voiceId|text" -> blob U
 async function _getClip(voiceId, text, settings){
   const cacheKey = voiceId + "|" + text;
   if(_clipCache.has(cacheKey)) return _clipCache.get(cacheKey);
-  const res = await fetch(ELEVEN.base + voiceId, {
-    method: "POST",
-    headers: {
-      "xi-api-key": getElevenKey(),
-      "Content-Type": "application/json",
-      "Accept": "audio/mpeg",
-    },
-    body: JSON.stringify({
-      text,
-      model_id: ELEVEN.model,
-      voice_settings: settings || { stability: 0.5, similarity_boost: 0.75 },
-    }),
-  });
+  const useServer = (typeof BACKEND !== "undefined" && BACKEND.eleven);
+  const ttsBody = {
+    text,
+    model_id: ELEVEN.model,
+    voice_settings: settings || { stability: 0.5, similarity_boost: 0.75 },
+  };
+  let res;
+  if(useServer){
+    // key held server-side (e.g. Vercel env) — proxy through /api/voice
+    res = await fetch("/api/voice", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ voiceId: voiceId, payload: ttsBody }),
+    });
+  } else {
+    res = await fetch(ELEVEN.base + voiceId, {
+      method: "POST",
+      headers: {
+        "xi-api-key": getElevenKey(),
+        "Content-Type": "application/json",
+        "Accept": "audio/mpeg",
+      },
+      body: JSON.stringify(ttsBody),
+    });
+  }
   if(!res.ok) throw new Error("ElevenLabs HTTP " + res.status);
   const url = URL.createObjectURL(await res.blob());
   _clipCache.set(cacheKey, url);
@@ -198,24 +214,43 @@ function speakHover(charKey){
 
 /* ---------- helpers for the setup screen / console ---------- */
 
-/* connectivity check: hit /v1/voices with the saved key */
+/* connectivity check: list voices (server proxy if present, else direct) */
 async function testElevenKey(){
-  const res = await fetch(ELEVEN.list, { headers: { "xi-api-key": getElevenKey() } });
+  const useServer = (typeof BACKEND !== "undefined" && BACKEND.eleven);
+  const res = useServer
+    ? await fetch("/api/voices-list")
+    : await fetch(ELEVEN.list, { headers: { "xi-api-key": getElevenKey() } });
   if(!res.ok) throw new Error("HTTP " + res.status);
   return true;
 }
 
-/* Run listVoices() in the console (after saving your key) to see your IDs. */
+/* Run listVoices() in the console to see your IDs (works in server mode too). */
 async function listVoices(){
-  const res = await fetch(ELEVEN.list, { headers: { "xi-api-key": getElevenKey() } });
+  const useServer = (typeof BACKEND !== "undefined" && BACKEND.eleven);
+  const res = useServer
+    ? await fetch("/api/voices-list")
+    : await fetch(ELEVEN.list, { headers: { "xi-api-key": getElevenKey() } });
   if(!res.ok){ console.error("Couldn't list voices — HTTP " + res.status); return; }
   const data = await res.json();
   (data.voices || []).forEach(function(v){ console.log(v.voice_id, "—", v.name); });
   return data.voices;
 }
 
+/* Called once backend detection finishes: if the server holds the ElevenLabs
+   key, swap the voice-key field for a confirmation note (nothing to paste). */
+function voicesApplyBackend(){
+  if(typeof BACKEND === "undefined" || !BACKEND.eleven) return;
+  const wrap = document.getElementById("voiceWrap");
+  if(wrap){
+    wrap.innerHTML = '<div class="setup-note" style="margin-top:18px;">✓ <b>ElevenLabs</b> voice key loaded from the server — heroes &amp; the dragon will speak. Nothing to paste.</div>';
+  }
+}
+
 /* ---------- setup-screen wiring (voice key field) ---------- */
 function voicesInitSetup(){
+  // server already supplies the key? show the confirmation note and stop.
+  if(typeof BACKEND !== "undefined" && BACKEND.eleven){ voicesApplyBackend(); return; }
+
   const wrap = document.getElementById("voiceWrap");
   const save = document.getElementById("voiceSave");
   const input = document.getElementById("voiceKey");

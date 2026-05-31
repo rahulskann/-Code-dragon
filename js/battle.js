@@ -95,7 +95,7 @@ async function askQuestion(kind, opt={}){ // kind 'defense' | 'attack'
   else if(kind==='defense'){ tag.textContent='DEFEND — dodge!'; tag.className='def pixel'; }
   else { tag.textContent='ATTACK — strike!'; tag.className='atk pixel'; }
 
-  if(typeof AI_MODE !== 'undefined' && AI_MODE && GEMINI.key){
+  if((typeof aiAvailable==='function' ? aiAvailable() : (typeof AI_MODE!=='undefined' && AI_MODE && GEMINI.key))){
     return await askQuestionAI(kind, {timeLimit, special});
   }
   return await askQuestionMC(nextQuestion(), {timeLimit, special});
@@ -214,7 +214,7 @@ async function askQuestionAI(kind, {timeLimit, special}){
 function chooseMove(){
   return new Promise(resolve=>{
     const tag=$('qTag'); tag.textContent='CHARGED!'; tag.className='spc pixel';
-    const aiNoTimer = (typeof AI_MODE!=='undefined' && AI_MODE && GEMINI.key);
+    const aiNoTimer = (typeof aiAvailable==='function' ? aiAvailable() : (typeof AI_MODE!=='undefined' && AI_MODE && GEMINI.key));
     const tw=$('timerWrap'); if(tw) tw.style.display = aiNoTimer ? 'none' : '';
     $('timerFill').style.transform='scaleX(1)';
     $('qText').innerHTML = aiNoTimer
@@ -326,7 +326,7 @@ async function playerTurn(){
   if(useSpecial){
     resetCharge();
     stats.specialsUsed++;
-    const _aiNoTimer = (typeof AI_MODE!=='undefined' && AI_MODE && GEMINI.key);
+    const _aiNoTimer = (typeof aiAvailable==='function' ? aiAvailable() : (typeof AI_MODE!=='undefined' && AI_MODE && GEMINI.key));
     setLogWait(_aiNoTimer
       ? '<span class="hot">Channeling everything — make this answer count!</span>'
       : '<span class="hot">Channeling everything — answer FAST!</span>');
@@ -437,7 +437,7 @@ function endBattle(win){
                  'Accuracy: <b>'+acc+'%</b> ('+stats.correct+' right, '+stats.wrong+' wrong)<br>'+
                  'Specials unleashed: <b>'+stats.specialsUsed+'</b><br>'+
                  'Dragon HP left: <b>'+Math.max(0,Math.round(dragon.hp))+'</b>';
-    if(typeof AI_MODE!=='undefined' && AI_MODE && GEMINI.key){
+    if((typeof aiAvailable==='function' ? aiAvailable() : (typeof AI_MODE!=='undefined' && AI_MODE && GEMINI.key))){
       const rev=document.createElement('div');
       rev.style.marginTop='12px'; rev.style.color='var(--ink-dim)'; rev.style.lineHeight='1.35';
       rev.innerHTML='🐉 <span class="aiThinking">The dragon writes your review…</span>';

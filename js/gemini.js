@@ -36,17 +36,30 @@ const GEMINI_TOPIC = {
 async function geminiCall(promptText, schema){
   const ctrl = new AbortController();
   const t = setTimeout(()=>ctrl.abort(), GEMINI.timeoutMs);
-  const geminiKey = import.meta.env.VITE_GEMINI_API_KEY || window.LOCAL_KEYS?.gemini;   // local config key as a safety net
+  const useServer = (typeof BACKEND !== "undefined" && BACKEND.gemini);
+  const payload = {
+    contents:[{ role:"user", parts:[{ text: promptText }] }],
+    generationConfig:{ responseMimeType:"application/json", responseSchema: schema, temperature: 0.9 },
+  };
   try{
-    const res = await fetch(GEMINI.endpoint(GEMINI.model), {
-      method:"POST",
-      headers:{ "Content-Type":"application/json", "x-goog-api-key": apiKey },
-      signal: ctrl.signal,
-      body: JSON.stringify({
-        contents:[{ role:"user", parts:[{ text: promptText }] }],
-        generationConfig:{ responseMimeType:"application/json", responseSchema: schema, temperature: 0.9 },
-      }),
-    });
+    let res;
+    if(useServer){
+      // keys live server-side (e.g. Vercel env) — proxy through /api/gemini
+      res = await fetch("/api/gemini", {
+        method:"POST",
+        headers:{ "Content-Type":"application/json" },
+        signal: ctrl.signal,
+        body: JSON.stringify({ model: GEMINI.model, payload }),
+      });
+    } else {
+      const apiKey = GEMINI.key || geminiLocalKey();   // local config key as a safety net
+      res = await fetch(GEMINI.endpoint(GEMINI.model), {
+        method:"POST",
+        headers:{ "Content-Type":"application/json", "x-goog-api-key": apiKey },
+        signal: ctrl.signal,
+        body: JSON.stringify(payload),
+      });
+    }
     clearTimeout(t);
     if(!res.ok) throw new Error("HTTP " + res.status);
     const data = await res.json();
@@ -56,6 +69,13 @@ async function geminiCall(promptText, schema){
     if(!txt) throw new Error("empty response");
     return JSON.parse(txt);
   } catch(e){ clearTimeout(t); throw e; }
+}
+
+/* AI features are usable when the user is in an AI/Résumé mode AND we have a
+   way to reach Gemini — either a client key or the server proxy. */
+function aiAvailable(){
+  return (typeof AI_MODE !== "undefined" && AI_MODE) &&
+         (!!GEMINI.key || (typeof BACKEND !== "undefined" && BACKEND.gemini));
 }
 
 /* ---------- public helpers used by battle.js ---------- */
@@ -137,9 +157,36 @@ function geminiSetMode(mode){
   if(a) a.classList.toggle("sel", mode === "ai");
   if(c) c.classList.toggle("sel", mode === "classic");
   if(r) r.classList.toggle("sel", mode === "resume");
-  const hasLocal = !!geminiLocalKey();
-  if(kw) kw.style.display = (AI_MODE && !hasLocal) ? "block" : "none";  // both AI flavours need a key
   if(rw) rw.style.display = RESUME_MODE ? "block" : "none";
+
+  const serverKey = (typeof BACKEND !== "undefined" && BACKEND.gemini);
+  const localKey  = !!geminiLocalKey();
+  if(kw){
+    const krow = kw.querySelector(".keyrow");
+    if(AI_MODE && serverKey){
+      // key held server-side (e.g. Vercel env): show the box as a confirmation, hide the input row
+      kw.style.display = "block";
+      if(krow) krow.style.display = "none";
+      const st = gid("keyStatus");
+      if(st){ st.textContent = "✓ Gemini key loaded from the server — nothing to paste."; st.className = "ok"; }
+    } else if(AI_MODE && localKey){
+      // key from config.local.js: nothing to type
+      kw.style.display = "none";
+    } else {
+      // manual entry (or Classic): restore the input row, show only when an AI mode is active
+      if(krow) krow.style.display = "";
+      kw.style.display = AI_MODE ? "block" : "none";
+    }
+  }
+}
+
+/* Called once backend detection finishes: if the server holds the Gemini key,
+   drop the "paste a key" hint and re-apply the current mode so the field state
+   reflects that no key is needed. */
+function geminiApplyBackend(){
+  if(typeof BACKEND === "undefined" || !BACKEND.gemini) return;
+  const hint = gid("keyHint"); if(hint) hint.style.display = "none";
+  geminiSetMode(RESUME_MODE ? "resume" : (AI_MODE ? "ai" : "classic"));
 }
 
 function geminiLoadKey(){
@@ -206,8 +253,11 @@ function geminiInitSetup(){
   const go = gid("toSelect");
   if(go) go.addEventListener("click", ()=>{
     if(AI_MODE){
+      const serverKey = (typeof BACKEND !== "undefined" && BACKEND.gemini);
       const local = geminiLocalKey();
-      if(local){
+      if(serverKey){
+        // key is held server-side (Vercel env) — nothing to read or store
+      } else if(local){
         // key comes from config.local.js — keep it; do NOT read the (hidden) input box
         GEMINI.key = local;
       } else {

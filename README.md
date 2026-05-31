@@ -16,8 +16,14 @@ code-dragon/
 ├── index.html            markup + ordered <script> includes
 ├── css/
 │   └── styles.css         all styling (retro pixel UI, animations)
+├── api/                   Vercel serverless functions (server-side key proxy)
+│   ├── status.js          reports which keys exist on the server
+│   ├── gemini.js          proxies Gemini (injects GEMINI_API_KEY)
+│   ├── voice.js           proxies ElevenLabs TTS (injects ELEVEN_API_KEY)
+│   └── voices-list.js     lists ElevenLabs voices for TEST / listVoices()
 └── js/                    loaded in this order; one shared global scope
     ├── core.js            world constants, canvas setup, tiny helpers
+    ├── backend.js         detects the /api proxy; flips the app to server-key mode
     ├── sprites-hero.js    PLAYER sprites: HERO_DATA pixel maps + builders
     ├── sprites-dragon.js  DRAGON sprite: procedural pixel-art drawing
     ├── entities.js        hero/dragon state + per-frame animation
@@ -25,7 +31,9 @@ code-dragon/
     ├── effects.js         particle bursts + projectiles
     ├── render-loop.js     the requestAnimationFrame draw loop
     ├── audio.js           generated WebAudio sound effects
+    ├── voices.js          ElevenLabs character voices (client key OR proxy)
     ├── questions.js       the interview question bank (edit me to add Qs)
+    ├── gemini.js          AI/Résumé question generation + grading (client key OR proxy)
     ├── battle.js          turn logic, question UI, special attack, win/lose
     └── main.js            class-select screen + button wiring
 ```
@@ -120,6 +128,48 @@ Edit the prompts (question style, grading strictness, dragon voice) in
 > fire inside an embedded preview sandbox. Run `python3 -m http.server 8000` from
 > this folder, or open `index.html` directly. Classic Mode works anywhere.
 
-> The key is client-side (fine for a demo, visible in devtools). To make it airtight
-> for judging, move the two `fetch` calls in `js/gemini.js` behind a small serverless
-> proxy that holds the key server-side.
+---
+
+## ✦ Deploying to Vercel (keys as server-side env vars) — added
+
+You can now keep your keys **on the server** as Vercel environment variables instead
+of putting them in `config.local.js` or pasting them on the setup screen. The browser
+never sees them.
+
+### How it works
+Four tiny serverless functions live in **`api/`** (zero-config — Vercel auto-detects them):
+
+```
+api/
+├── status.js        GET  → { gemini:bool, eleven:bool }  (so the page knows keys exist)
+├── gemini.js        POST → proxies Gemini, injects GEMINI_API_KEY
+├── voice.js         POST → proxies ElevenLabs TTS, injects ELEVEN_API_KEY
+└── voices-list.js   GET  → lists your ElevenLabs voices (for TEST / listVoices())
+```
+
+On load, **`js/backend.js`** pings `/api/status`. If a backend with keys is found, the
+game routes every Gemini/ElevenLabs call through the proxy and **hides the key fields**
+— nothing to paste. If there's no backend (opened locally, or a static host without the
+functions), it silently falls back to the existing client-key flow.
+
+### Steps
+1. Push this folder to a Git repo and **Import** it in Vercel (Framework Preset: **Other**).
+   If `index.html` and `api/` aren't at the repo root, set **Root Directory** to this folder.
+2. In **Settings → Environment Variables**, add (mark them **Sensitive**):
+   - `GEMINI_API_KEY` — your Google AI Studio key
+   - `ELEVEN_API_KEY` — your ElevenLabs key (optional, for voices)
+3. Deploy. Open the site, pick **AI / Résumé Mode**, and it works with no key entry.
+
+> Requires the default Vercel Node runtime (Node 18+, which has global `fetch`). No
+> build step, no dependencies, no `vercel.json` needed.
+
+### Key precedence
+1. **Server proxy** (Vercel env vars) — used whenever `/api/status` reports the key exists.
+2. **`config.local.js`** — git-ignored local file (see above).
+3. **Typed key** — pasted on the setup screen (saved to your browser's localStorage).
+4. **None** — Classic still works fully; AI/Résumé modes fall back to the offline bank.
+
+> Heads-up: the proxy endpoints are open to anyone who can reach your deployment, so they
+> can spend your API quota. That's usually fine for a demo/portfolio piece; if you need to
+> lock it down, add auth or rate-limiting (e.g. a shared header check or Vercel's firewall)
+> in the `api/*.js` handlers.
