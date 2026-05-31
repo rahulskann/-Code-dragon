@@ -39,7 +39,7 @@ const ELEVEN = {
    Events: hover | attack | hurt. One line is picked at random each time. */
 const VOICES = {
   mage: {
-    voiceId: "21m00Tcm4TlvDq8ikWAM",                 // default preset "Rachel"
+    voiceId: "m3OZYhKGRczbC3OjDu5g",                 // default preset "Rachel"
     settings: { stability: 0.40, similarity_boost: 0.75, style: 0.35 },
     lines: {
       hover:  ["I weave the interface from light itself.",
@@ -51,7 +51,7 @@ const VOICES = {
     },
   },
   fighter: {
-    voiceId: "pNInz6obpgDQGcFmaJgB",                 // default preset "Adam"
+    voiceId: "awYfxnQdPQUXY9tdhnBr",                 // default preset "Adam"
     settings: { stability: 0.55, similarity_boost: 0.80, style: 0.25 },
     lines: {
       hover:  ["I hold the line at the server gate.",
@@ -63,7 +63,7 @@ const VOICES = {
     },
   },
   thief: {
-    voiceId: "ErXwobaYiN019PkySvjV",                 // default preset "Antoni"
+    voiceId: "wFxzQFrhIg6Hhofkf2lo",                 // default preset "Antoni"
     settings: { stability: 0.45, similarity_boost: 0.75, style: 0.40 },
     lines: {
       hover:  ["Every defense has a crack. I find them.",
@@ -75,7 +75,7 @@ const VOICES = {
     },
   },
   dragon: {
-    voiceId: "VR6AewLTigWG4xSOukaG",                 // default preset "Arnold"
+    voiceId: "m8PWL7BK17oItpMiO40p",                 // default preset "Arnold"
     settings: { stability: 0.35, similarity_boost: 0.85, style: 0.55 },
     lines: {
       hover:  ["I guard the offer letter, little applicant.",
