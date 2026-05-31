@@ -169,7 +169,11 @@ async function askQuestionAI(kind, {timeLimit, special}){
   $('timerFill').style.transform='scaleX(1)';
   let qtext;
   try { qtext = await geminiGenerateQuestion(hero.key, kind); }
-  catch(e){ return await askQuestionMC(nextQuestion(), {timeLimit, special}); } // fallback
+  catch(e){
+    try { console.warn("[code-dragon] Falling back to offline question bank after Gemini question failure:", e); } catch(_){}
+    setLog('<span class="bad">Gemini fizzled, so the dragon pulled an offline question.</span>');
+    return await askQuestionMC(nextQuestion(), {timeLimit, special});
+  }
   if(myToken!==battleToken){ return false; }   // abandoned during generation
 
   return await new Promise(resolve=>{
@@ -201,7 +205,10 @@ async function askQuestionAI(kind, {timeLimit, special}){
       else {
         $('qText').innerHTML='<span class="aiThinking">🐉 The dragon weighs your words…</span>';
         try { const g=await geminiGradeAnswer(hero.key, qtext, answer); verdict=g.verdict; quip=g.quip; }
-        catch(e){ verdict = answer? 'partial':'wrong'; quip='(the grading flame flickered — partial credit)'; }
+        catch(e){
+          try { console.warn("[code-dragon] Falling back after Gemini grading failure:", e); } catch(_){}
+          verdict = answer? 'partial':'wrong'; quip='(the grading flame flickered — partial credit)';
+        }
         if(myToken!==battleToken){ return; }   // abandoned while grading
         $('qText').textContent=qtext;
       }

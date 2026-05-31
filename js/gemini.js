@@ -39,7 +39,11 @@ async function geminiCall(promptText, schema){
   const useServer = (typeof BACKEND !== "undefined" && BACKEND.gemini);
   const payload = {
     contents:[{ role:"user", parts:[{ text: promptText }] }],
-    generationConfig:{ responseMimeType:"application/json", responseSchema: schema, temperature: 0.9 },
+    generationConfig:{
+      temperature: 0.9,
+      responseMimeType:"application/json",
+      responseJsonSchema: schema,
+    },
   };
   try{
     let res;
@@ -61,14 +65,22 @@ async function geminiCall(promptText, schema){
       });
     }
     clearTimeout(t);
-    if(!res.ok) throw new Error("HTTP " + res.status);
+    if(!res.ok){
+      let detail = "";
+      try { detail = await res.text(); } catch(e){}
+      throw new Error("Gemini HTTP " + res.status + (detail ? ": " + detail.slice(0, 280) : ""));
+    }
     const data = await res.json();
     const txt = data && data.candidates && data.candidates[0] &&
                 data.candidates[0].content && data.candidates[0].content.parts &&
                 data.candidates[0].content.parts[0] && data.candidates[0].content.parts[0].text;
-    if(!txt) throw new Error("empty response");
+    if(!txt) throw new Error("empty response: " + JSON.stringify(data).slice(0, 280));
     return JSON.parse(txt);
-  } catch(e){ clearTimeout(t); throw e; }
+  } catch(e){
+    clearTimeout(t);
+    try { console.warn("[code-dragon] Gemini call failed:", e); } catch(_){}
+    throw e;
+  }
 }
 
 /* AI features are usable when the user is in an AI/Résumé mode AND we have a
