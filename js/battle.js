@@ -33,6 +33,9 @@ function setLogWait(html){ $('log').innerHTML = '<span id="logText" class="blink
 
 function shuffle(arr){ const a=arr.slice(); for(let i=a.length-1;i>0;i--){const j=(Math.random()*(i+1))|0;[a[i],a[j]]=[a[j],a[i]];} return a; }
 function nextQuestion(){ if(qDeck.length===0) qDeck = shuffle(QUESTIONS[hero.key]); return qDeck.pop(); }
+function shuffleAnswers(item){
+  return shuffle(item.a.map((text, originalIndex)=>({ text, correct: originalIndex===item.c })));
+}
 
 function worldToPct(wx,wy){ return { left:(wx/WORLD_W*100)+'%', top:(wy/WORLD_H*100)+'%' }; }
 function floatNum(wx,wy,text,color){
@@ -117,11 +120,13 @@ function askQuestionMC(item, {timeLimit, special}){
     $('qText').textContent=item.q;
     const wrap=$('answers'); wrap.innerHTML='';
     const keys=['A','B','C','D'];
+    const choices = shuffleAnswers(item);
+    const correctIndex = choices.findIndex(choice=>choice.correct);
     const btns=[];
-    item.a.forEach((opt2,i)=>{
+    choices.forEach((choice,i)=>{
       const b=document.createElement('button');
       b.className='ans'+(special?' special':'');
-      b.innerHTML='<span class="key">'+keys[i]+'</span><span>'+opt2+'</span>';
+      b.innerHTML='<span class="key">'+keys[i]+'</span><span>'+choice.text+'</span>';
       b.addEventListener('click',()=>finish(i));
       wrap.appendChild(b); btns.push(b);
     });
@@ -144,10 +149,10 @@ function askQuestionMC(item, {timeLimit, special}){
       clearInterval(timerHandle);
       if(myToken!==battleToken){ return; }   // battle abandoned: drop this result
       answerResolve=null;
-      const correct = choice===item.c;
+      const correct = choice===correctIndex;
       btns.forEach((b,i)=>{
         b.disabled=true;
-        if(i===item.c) b.classList.add('correct');
+        if(i===correctIndex) b.classList.add('correct');
         else if(i===choice) b.classList.add('wrong');
       });
       if(correct){ stats.correct++; Sfx.correct(); }
