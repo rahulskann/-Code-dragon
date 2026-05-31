@@ -124,11 +124,19 @@ function askQuestionMC(item, {timeLimit, special}){
     $('qText').textContent=item.q;
     const wrap=$('answers'); wrap.innerHTML='';
     const keys=['A','B','C','D'];
+
+    // Shuffle the options so the correct answer doesn't sit in the same slot
+    // every time (the question bank happens to cluster correct answers at B/C).
+    // We build {text, isCorrect} pairs, shuffle them, then track the new index
+    // of the correct one so grading + highlighting stay accurate.
+    const order = shuffle(item.a.map((text,i)=>({ text, isCorrect: i===item.c })));
+    const correctIdx = order.findIndex(o=>o.isCorrect);
+
     const btns=[];
-    item.a.forEach((opt2,i)=>{
+    order.forEach((opt2,i)=>{
       const b=document.createElement('button');
       b.className='ans'+(special?' special':'');
-      b.innerHTML='<span class="key">'+keys[i]+'</span><span>'+opt2+'</span>';
+      b.innerHTML='<span class="key">'+keys[i]+'</span><span>'+opt2.text+'</span>';
       b.addEventListener('click',()=>finish(i));
       wrap.appendChild(b); btns.push(b);
     });
@@ -151,10 +159,10 @@ function askQuestionMC(item, {timeLimit, special}){
       clearInterval(timerHandle);
       if(myToken!==battleToken){ return; }   // battle abandoned: drop this result
       answerResolve=null;
-      const correct = choice===item.c;
+      const correct = choice===correctIdx;
       btns.forEach((b,i)=>{
         b.disabled=true;
-        if(i===item.c) b.classList.add('correct');
+        if(i===correctIdx) b.classList.add('correct');
         else if(i===choice) b.classList.add('wrong');
       });
       if(correct){ stats.correct++; Sfx.correct(); }
@@ -443,6 +451,7 @@ function endBattle(win){
   setTimeout(()=>{
     $('battleScreen').style.display='none';
     const es=$('endScreen'); es.style.display='block';
+    if(typeof refreshHomeBtn==='function') refreshHomeBtn();
     if(typeof refreshEndScreenForMode==='function') refreshEndScreenForMode();
     const t=$('endTitle'), s=$('endSub'), st=$('endStats');
     if(win){ t.textContent='VICTORY!'; t.className='win pixel';

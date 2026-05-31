@@ -363,6 +363,7 @@ function geminiInitSetup(){
     if(typeof refreshSelectScreenForMode==="function") refreshSelectScreenForMode();
     gid("setupScreen").style.display = "none";
     gid("selectScreen").style.display = "block";
+    if(typeof refreshHomeBtn==="function") refreshHomeBtn();
   });
 
   geminiLoadKey();
