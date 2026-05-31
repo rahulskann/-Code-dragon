@@ -7,7 +7,7 @@ function startBattle(clsKey){
   battleToken++;              // invalidate any still-running loop from a prior fight
   hero.key=clsKey; hero.hp=hero.maxHp=100; hero.anim='idle'; hero.alpha=1; hero.flash=0;
   dragon.hp=dragon.maxHp=130; dragon.anim='idle'; dragon.alpha=1; dragon.flash=0;
-  stats={correct:0,wrong:0,rounds:0,specialsUsed:0};
+  stats={correct:0,wrong:0,rounds:0,specialsUsed:0,log:[]};
   qDeck=shuffle(QUESTIONS[clsKey]);
   particles=[]; projectiles=[];
   specialCharge=0; updateSpecialBar();
@@ -29,6 +29,7 @@ function startBattle(clsKey){
   $('endScreen').style.display='none';
   $('battleScreen').style.display='block';
   $('qPanel').style.opacity='1';
+  if(typeof refreshHomeBtn==='function') refreshHomeBtn();
   updateBars();
   battleLoop();
 }
@@ -71,9 +72,25 @@ $('againBtn').addEventListener('click',()=>startBattle(hero.key));
 $('classBtn').addEventListener('click',()=>{
   $('endScreen').style.display='none';
   $('battleScreen').style.display='none';
+  // Résumé Mode has no class to pick — go back to setup so they can edit/re-upload
+  // the résumé or switch modes, instead of the (skipped) avatar-select screen.
+  if(typeof RESUME_MODE!=='undefined' && RESUME_MODE){
+    $('setupScreen').style.display='block';
+    if(typeof refreshHomeBtn==='function') refreshHomeBtn();
+    return;
+  }
   refreshSelectScreenForMode();
   $('selectScreen').style.display='block';
+  if(typeof refreshHomeBtn==='function') refreshHomeBtn();
 });
+
+/* Relabel the end-screen "NEW CLASS" button to match the mode. */
+function refreshEndScreenForMode(){
+  const btn = document.getElementById('classBtn');
+  if(!btn) return;
+  const resume = (typeof RESUME_MODE!=='undefined' && RESUME_MODE);
+  btn.textContent = resume ? 'EDIT RÉSUMÉ' : 'NEW CLASS';
+}
 
 /* In Résumé Mode the three sprites are just avatars / fighting styles — the
    quiz comes from the user's résumé, not the class domain. So reframe the
@@ -103,14 +120,28 @@ function refreshSelectScreenForMode(){
   });
 }
 
-/* HOME — leave a fight in progress and return to class select.
-   Nothing is saved: a new fight fully re-initializes in startBattle(). */
-$('homeBtn').addEventListener('click',()=>{
-  abortBattle();                       // stop the loop, timer, pending answer & voices
+/* HOME — leave whatever's happening and return to the MAIN MENU (setup screen).
+   Works from the class-select, the battle, or the end screen. Nothing is saved;
+   a new fight fully re-initializes in startBattle(). */
+function goHome(){
+  if(typeof abortBattle==='function') abortBattle();   // stop loop, timer, pending answer
   clearInterval(timerHandle);
-  $('answers').innerHTML='';           // clear any question UI
+  if(typeof stopVoice==='function') stopVoice();         // silence any in-progress voice line
+  $('answers').innerHTML='';                             // clear any question UI
   $('qPanel').classList.remove('special');
   $('battleScreen').style.display='none';
   $('endScreen').style.display='none';
-  $('selectScreen').style.display='block';
-});
+  $('selectScreen').style.display='none';
+  $('setupScreen').style.display='block';                // back to the main menu
+  refreshHomeBtn();
+}
+$('homeBtn').addEventListener('click', goHome);
+
+/* The home button shows on every screen EXCEPT the main menu itself (you're
+   already there). Call after any screen switch. */
+function refreshHomeBtn(){
+  const hb=document.getElementById('homeBtn');
+  if(!hb) return;
+  const onMenu = $('setupScreen') && $('setupScreen').style.display!=='none';
+  hb.style.display = onMenu ? 'none' : 'block';
+}
