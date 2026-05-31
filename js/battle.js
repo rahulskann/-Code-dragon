@@ -15,7 +15,7 @@ const AI_FEEDBACK_MS = { correct: 2600, wrong: 3200 };
 // single character it plays as. Change to 'fighter' or 'thief' if you prefer.
 const RESUME_DEFAULT_CLASS = 'mage';
 
-let stats = {correct:0, wrong:0, rounds:0, specialsUsed:0};
+let stats = {correct:0, wrong:0, rounds:0, specialsUsed:0, log:[]};
 let qDeck = [];          // shuffled remaining questions for current class
 let answerResolve = null;
 let timerHandle = null;
@@ -167,6 +167,14 @@ function askQuestionMC(item, {timeLimit, special}){
       });
       if(correct){ stats.correct++; Sfx.correct(); }
       else { stats.wrong++; Sfx.wrong(); }
+      // record for the end-of-game report card
+      stats.log.push({
+        mode:'mc',
+        q:item.q,
+        correctText: order[correctIdx] ? order[correctIdx].text : '',
+        yourText: (choice>=0 && order[choice]) ? order[choice].text : (choice===-1 ? '(ran out of time)' : ''),
+        verdict: correct ? 'correct' : 'wrong',
+      });
       // brief pause so player sees the right answer highlighted
       setTimeout(()=>{ $('qPanel').classList.remove('special'); resolve(correct); }, correct?420:780);
     }
@@ -226,6 +234,14 @@ async function askQuestionAI(kind, {timeLimit, special}){
       if(correct){ stats.correct++; Sfx.correct(); } else { stats.wrong++; Sfx.wrong(); }
       const vClass = verdict==='correct'?'ok':verdict==='partial'?'hot':'bad';
       if(quip) setLog('🐉 “'+quip+'” <span class="'+vClass+'">['+verdict.toUpperCase()+']</span>');
+      // record for the end-of-game report card
+      stats.log.push({
+        mode:'ai',
+        q:qtext,
+        yourText: answer || (timedOut ? '(ran out of time)' : '(left blank)'),
+        verdict: verdict,
+        quip: quip || '',
+      });
       // Give the player time to actually READ the dragon's feedback before the
       // turn advances. AI/Résumé answers are graded with a written quip + verdict,
       // so this pause is much longer than the Classic multiple-choice flash.
@@ -472,5 +488,63 @@ function endBattle(win){
       st.appendChild(rev);
       geminiReview(hero.key, stats).then(r=>{ rev.textContent='🐉 '+r; }).catch(()=>{ rev.remove(); });
     }
+    renderReportCard(st);
   }, win?1500:1400);
+}
+
+/* ---- end-of-game REPORT CARD: every question you missed (wrong / partial),
+        with the correct answer (Classic) or the dragon's note (AI/Résumé),
+        plus the ones you nailed. Pure DOM, no print/PDF. ---- */
+function escapeHtml(s){
+  return String(s==null?'':s)
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+function renderReportCard(container){
+  const log = (stats && Array.isArray(stats.log)) ? stats.log : [];
+  const card=document.createElement('div');
+  card.className='reportCard';
+  if(log.length===0){
+    card.innerHTML='<h3 class="rcTitle">📋 Interview Report Card</h3>'+
+      '<div class="rcEmpty">No questions were answered this round.</div>';
+    container.appendChild(card);
+    return;
+  }
+
+  const missed = log.filter(e=>e.verdict==='wrong' || e.verdict==='partial');
+  const nailed = log.filter(e=>e.verdict==='correct');
+
+  let html='<h3 class="rcTitle">📋 Interview Report Card</h3>';
+
+  if(missed.length){
+    html += '<div class="rcSection rcReview"><div class="rcHead">⚠ Review these ('+missed.length+')</div>';
+    missed.forEach((e,idx)=>{
+      const tag = e.verdict==='partial'
+        ? '<span class="rcTag partial">PARTIAL</span>'
+        : '<span class="rcTag wrong">MISSED</span>';
+      html += '<div class="rcItem">'+
+        '<div class="rcQ">'+(idx+1)+'. '+escapeHtml(e.q)+' '+tag+'</div>'+
+        '<div class="rcYou"><span class="rcLbl">Your answer:</span> '+escapeHtml(e.yourText)+'</div>';
+      if(e.mode==='mc'){
+        html += '<div class="rcAns"><span class="rcLbl">Correct:</span> '+escapeHtml(e.correctText)+'</div>';
+      } else if(e.quip){
+        html += '<div class="rcAns"><span class="rcLbl">🐉 Dragon:</span> '+escapeHtml(e.quip)+'</div>';
+      }
+      html += '</div>';
+    });
+    html += '</div>';
+  } else {
+    html += '<div class="rcSection"><div class="rcPerfect">🏆 Flawless run — you missed nothing. The dragon is impressed.</div></div>';
+  }
+
+  if(nailed.length){
+    html += '<div class="rcSection rcNailed"><div class="rcHead">✓ Nailed it ('+nailed.length+')</div>';
+    nailed.forEach((e)=>{
+      html += '<div class="rcItemOk">• '+escapeHtml(e.q)+'</div>';
+    });
+    html += '</div>';
+  }
+
+  card.innerHTML=html;
+  container.appendChild(card);
 }

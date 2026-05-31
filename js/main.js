@@ -7,7 +7,7 @@ function startBattle(clsKey){
   battleToken++;              // invalidate any still-running loop from a prior fight
   hero.key=clsKey; hero.hp=hero.maxHp=100; hero.anim='idle'; hero.alpha=1; hero.flash=0;
   dragon.hp=dragon.maxHp=130; dragon.anim='idle'; dragon.alpha=1; dragon.flash=0;
-  stats={correct:0,wrong:0,rounds:0,specialsUsed:0};
+  stats={correct:0,wrong:0,rounds:0,specialsUsed:0,log:[]};
   qDeck=shuffle(QUESTIONS[clsKey]);
   particles=[]; projectiles=[];
   specialCharge=0; updateSpecialBar();
