@@ -36,7 +36,7 @@ const GEMINI_TOPIC = {
 async function geminiCall(promptText, schema){
   const ctrl = new AbortController();
   const t = setTimeout(()=>ctrl.abort(), GEMINI.timeoutMs);
-  const apiKey = GEMINI.key || geminiLocalKey();   // local config key as a safety net
+  const geminiKey = import.meta.env.VITE_GEMINI_API_KEY || window.LOCAL_KEYS?.gemini;   // local config key as a safety net
   try{
     const res = await fetch(GEMINI.endpoint(GEMINI.model), {
       method:"POST",
