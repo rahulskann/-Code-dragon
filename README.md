@@ -173,3 +173,34 @@ functions), it silently falls back to the existing client-key flow.
 > can spend your API quota. That's usually fine for a demo/portfolio piece; if you need to
 > lock it down, add auth or rate-limiting (e.g. a shared header check or Vercel's firewall)
 > in the `api/*.js` handlers.
+
+### Troubleshooting: "it works locally but the hosted site can't find the key"
+
+Locally it works because your git-ignored `config.local.js` supplies the key. That file is
+**never deployed**, so on the host the key must come from the server env vars. If AI/Résumé
+mode falls back to multiple-choice when hosted, find out *why* in one step:
+
+**Open the deployed site, press F12 → Console.** On load you'll see a line like:
+```
+[code-dragon] backend check → reached=… http=… gemini=… eleven=… (reason)
+```
+You can also run `codeDragonDiag()` in the console any time. The setup screen shows the same
+diagnosis under the key field when you pick AI/Résumé mode. Match your result below:
+
+- **`reached=false` (or visiting `/your-site/api/status` gives a 404)** — Vercel isn't running
+  the functions. Almost always the **Root Directory** is wrong: it must be the folder that
+  directly contains `index.html` **and** the `api/` folder. In Vercel → Settings → General →
+  Root Directory, set it to `code-dragon` (or wherever those live) and redeploy. Also confirm
+  the `api/` folder was actually pushed to the repo.
+- **`reached=true` but `gemini=false`** — the function is running but `GEMINI_API_KEY` isn't
+  visible to it. Fixes, in order:
+  1. The variable name must be **exactly** `GEMINI_API_KEY` (and `ELEVEN_API_KEY` for voices).
+  2. It must be enabled for the **Production** environment (and Preview, if you're testing a
+     branch/preview URL).
+  3. **Env vars only apply to new builds** — after adding/changing them you must **Redeploy**
+     (Deployments → ⋯ → Redeploy). This is the most common cause.
+- **`gemini=true`** — the key is wired correctly; AI/Résumé mode will use the server proxy.
+
+Quick manual check: open `https://YOUR-SITE/api/status` directly. You should see
+`{"backend":true,"gemini":true,"eleven":true}`. If you get a 404, it's the Root-Directory
+issue; if you get `gemini:false`, it's the env-var/redeploy issue.

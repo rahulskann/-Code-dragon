@@ -95,6 +95,15 @@ async function askQuestion(kind, opt={}){ // kind 'defense' | 'attack'
   else if(kind==='defense'){ tag.textContent='DEFEND — dodge!'; tag.className='def pixel'; }
   else { tag.textContent='ATTACK — strike!'; tag.className='atk pixel'; }
 
+  // In an AI/Résumé mode with no client key, make sure backend detection has
+  // settled before deciding — otherwise a slow /api/status probe would wrongly
+  // drop the first question to the offline bank.
+  if(typeof AI_MODE!=='undefined' && AI_MODE && !GEMINI.key &&
+     typeof whenBackendReady==='function' &&
+     (typeof BACKEND==='undefined' || !BACKEND.checked)){
+    try{ await whenBackendReady(); }catch(e){}
+  }
+
   if((typeof aiAvailable==='function' ? aiAvailable() : (typeof AI_MODE!=='undefined' && AI_MODE && GEMINI.key))){
     return await askQuestionAI(kind, {timeLimit, special});
   }

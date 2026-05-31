@@ -163,30 +163,45 @@ function geminiSetMode(mode){
   const localKey  = !!geminiLocalKey();
   if(kw){
     const krow = kw.querySelector(".keyrow");
-    if(AI_MODE && serverKey){
+    const st = gid("keyStatus");
+    if(!AI_MODE){
+      kw.style.display = "none";
+    } else if(serverKey){
       // key held server-side (e.g. Vercel env): show the box as a confirmation, hide the input row
       kw.style.display = "block";
       if(krow) krow.style.display = "none";
-      const st = gid("keyStatus");
       if(st){ st.textContent = "✓ Gemini key loaded from the server — nothing to paste."; st.className = "ok"; }
-    } else if(AI_MODE && localKey){
+    } else if(localKey){
       // key from config.local.js: nothing to type
       kw.style.display = "none";
     } else {
-      // manual entry (or Classic): restore the input row, show only when an AI mode is active
+      // no key available yet — show manual entry, plus a diagnostic about the server proxy
+      kw.style.display = "block";
       if(krow) krow.style.display = "";
-      kw.style.display = AI_MODE ? "block" : "none";
+      if(st){
+        if(typeof BACKEND === "undefined" || !BACKEND.checked){
+          st.textContent = "Checking the server for a key…"; st.className = "";
+        } else if(!BACKEND.reached){
+          st.textContent = "No server proxy found (" + (BACKEND.error||"unreachable") + "). Paste a key below, or deploy the /api functions and reload.";
+          st.className = "bad";
+        } else if(!BACKEND.gemini){
+          st.textContent = "Server reached but GEMINI_API_KEY isn't visible to it — add it (Production) and REDEPLOY, or paste a key below.";
+          st.className = "bad";
+        } else {
+          st.textContent = ""; st.className = "";
+        }
+      }
     }
   }
 }
 
-/* Called once backend detection finishes: if the server holds the Gemini key,
-   drop the "paste a key" hint and re-apply the current mode so the field state
-   reflects that no key is needed. */
+/* Called once backend detection finishes: drop the "paste a key" hint when the
+   server has the key, and re-apply the current mode so the field state + any
+   diagnostic message reflect what the server reported. */
 function geminiApplyBackend(){
-  if(typeof BACKEND === "undefined" || !BACKEND.gemini) return;
-  const hint = gid("keyHint"); if(hint) hint.style.display = "none";
-  geminiSetMode(RESUME_MODE ? "resume" : (AI_MODE ? "ai" : "classic"));
+  if(typeof BACKEND === "undefined") return;
+  const hint = gid("keyHint"); if(hint) hint.style.display = BACKEND.gemini ? "none" : "";
+  if(AI_MODE) geminiSetMode(RESUME_MODE ? "resume" : "ai");
 }
 
 function geminiLoadKey(){
