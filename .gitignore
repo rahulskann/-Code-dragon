@@ -3,8 +3,8 @@ js/config.local.js
 .env
 .env*.local
 .vercel
-.rocketride/
 
 # Editor / OS noise
 .DS_Store
 *.swp
+.env*

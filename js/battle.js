@@ -40,9 +40,6 @@ function setLogWait(html){ $('log').innerHTML = '<span id="logText" class="blink
 
 function shuffle(arr){ const a=arr.slice(); for(let i=a.length-1;i>0;i--){const j=(Math.random()*(i+1))|0;[a[i],a[j]]=[a[j],a[i]];} return a; }
 function nextQuestion(){ if(qDeck.length===0) qDeck = shuffle(QUESTIONS[hero.key]); return qDeck.pop(); }
-function shuffleAnswers(item){
-  return shuffle(item.a.map((text, originalIndex)=>({ text, correct: originalIndex===item.c })));
-}
 
 function worldToPct(wx,wy){ return { left:(wx/WORLD_W*100)+'%', top:(wy/WORLD_H*100)+'%' }; }
 function floatNum(wx,wy,text,color){
