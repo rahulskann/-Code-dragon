@@ -47,17 +47,6 @@ export default function Page() {
             <div id="voiceStatus"></div>
           </div>
 
-          <div id="geminiWrap">
-            <div className="setup-note" style={{ margin: "18px 0 8px" }}>
-              Optional: paste a Gemini API key only if you are running from the static preview/index.html and not through a server proxy.
-            </div>
-            <div className="keyrow">
-              <input id="geminiKey" type="password" placeholder="Gemini API key (preview fallback)" autoComplete="off" />
-              <button className="btn ghost" id="geminiSave" style={{ fontSize: "9px" }}>SAVE</button>
-            </div>
-            <div id="geminiStatus"></div>
-          </div>
-
           <div className="btnrow">
             <button className="btn" id="toSelect">ENTER THE LAIR ▶</button>
           </div>

@@ -55,27 +55,11 @@ $('optClassic').addEventListener('click', ()=>setMode("classic"));
 $('optAI').addEventListener('keydown', e=>{if(e.key==="Enter"||e.key===" ")setMode("ai");});
 $('optClassic').addEventListener('keydown', e=>{if(e.key==="Enter"||e.key===" ")setMode("classic");});
 
-// preload saved Gemini and ElevenLabs keys
+// preload saved ElevenLabs voice key
 (function(){
-  const gk = lsGet(LS_GEMINI_KEY);
-  if(gk){ state.apiKey = gk; $('geminiKey').value = gk; $('geminiStatus').textContent = "Saved Gemini key loaded for preview fallback."; $('geminiStatus').className = "ok"; }
   const vk = getElevenKey();
   if(vk){ $('voiceKey').value = vk; $('voiceStatus').textContent = "Saved voice key loaded — characters will speak."; $('voiceStatus').className = "ok"; }
 })();
-
-$('geminiSave').addEventListener('click', async ()=>{
-  const k=$('geminiKey').value.trim();
-  if(!k){ state.apiKey = ""; lsSet(LS_GEMINI_KEY,""); $('geminiStatus').textContent="No Gemini key set — AI Mode needs a proxy or saved key."; $('geminiStatus').className=""; return; }
-  state.apiKey = k;
-  lsSet(LS_GEMINI_KEY,k);
-  $('geminiStatus').textContent="Testing Gemini key…"; $('geminiStatus').className="";
-  try{
-    await callGemini("Reply with JSON {\"ok\":true}.", {type:"object",properties:{ok:{type:"boolean"}},required:["ok"]});
-    $('geminiStatus').textContent="✓ Gemini ready — AI Mode can now use your key if the proxy is unavailable."; $('geminiStatus').className="ok";
-  }catch(e){
-    $('geminiStatus').textContent=`✗ ${e.message}`; $('geminiStatus').className="bad";
-  }
-});
 
 $('voiceSave').addEventListener('click', async ()=>{
   const k=$('voiceKey').value.trim();

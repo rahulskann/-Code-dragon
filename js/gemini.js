@@ -8,7 +8,6 @@
 async function callGemini(promptText, schema){
   const ctrl = new AbortController();
   const t = setTimeout(()=>ctrl.abort(), GEMINI.timeoutMs);
-  const localKey = state.apiKey || lsGet(LS_GEMINI_KEY);
   try{
     const res = await fetch("/api/gemini", {
       method: "POST",
@@ -17,48 +16,9 @@ async function callGemini(promptText, schema){
       body: JSON.stringify({ prompt: promptText, schema })
     });
     clearTimeout(t);
-    if(res.ok){
-      const data = await res.json();
-      const txt = data?.candidates?.[0]?.content?.parts?.[0]?.text;
-      if(!txt) throw new Error("empty response");
-      return JSON.parse(txt);
-    }
-    if(localKey && res.status===404){
-      return await callGeminiDirect(localKey, promptText, schema, ctrl, t);
-    }
-    const body = await res.text();
-    throw new Error(`HTTP ${res.status}: ${body}`);
-  }catch(e){
-    clearTimeout(t);
-    if(localKey && /NetworkError|Failed to fetch|404/.test(e.message)){
-      return await callGeminiDirect(localKey, promptText, schema, ctrl, t);
-    }
-    throw e;
-  }
-}
-
-async function callGeminiDirect(apiKey, promptText, schema, ctrl, t){
-  try{
-    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${GEMINI.model}:generateContent`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-goog-api-key": apiKey,
-      },
-      signal: ctrl.signal,
-      body: JSON.stringify({
-        contents: [{ role: "user", parts: [{ text: promptText }] }],
-        generationConfig: {
-          responseMimeType: "application/json",
-          responseSchema: schema,
-          temperature: 0.9,
-        },
-      }),
-    });
-    clearTimeout(t);
     if(!res.ok){
       const body = await res.text();
-      throw new Error(`Direct Gemini HTTP ${res.status}: ${body}`);
+      throw new Error(`HTTP ${res.status}: ${body}`);
     }
     const data = await res.json();
     const txt = data?.candidates?.[0]?.content?.parts?.[0]?.text;

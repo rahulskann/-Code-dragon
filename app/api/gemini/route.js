@@ -5,6 +5,13 @@
 export async function POST(req) {
   const { prompt, schema } = await req.json();
 
+  if(!process.env.GEMINI_API_KEY){
+    return new Response(JSON.stringify({ error: "GEMINI_API_KEY not configured" }), {
+      status: 500,
+      headers: { "Content-Type": "application/json" },
+    });
+  }
+
   const res = await fetch(
     "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent",
     {
@@ -25,5 +32,8 @@ export async function POST(req) {
   );
 
   const data = await res.json();
-  return Response.json(data);
+  return new Response(JSON.stringify(data), {
+    status: res.status,
+    headers: { "Content-Type": "application/json" },
+  });
 }
