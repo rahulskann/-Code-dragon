@@ -130,7 +130,7 @@
        Splitting is purely organizational — behavior is identical.
        Load order = dependency order; do not reorder casually. -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
-  <script>pdfjsLib.GlobalWorkerOptions.workerSrc="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";</script>
+  <script>if(typeof pdfjsLib!=="undefined"){ pdfjsLib.GlobalWorkerOptions.workerSrc="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js"; }</script>
   <script src="js/core.js"></script>
   <!-- optional local keys (git-ignored). If js/config.local.js is missing,
        this 404s harmlessly and the on-screen key fields are used instead. -->

@@ -259,6 +259,7 @@ function geminiInitSetup(){
     if(st){ st.textContent = "Reading PDF…"; st.className = ""; }
     if(fileName) fileName.textContent = "";
     try {
+      if(typeof pdfjsLib === "undefined") throw new Error("PDF.js did not load — try refreshing.");
       const arrayBuffer = await file.arrayBuffer();
       const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
       let text = "";
