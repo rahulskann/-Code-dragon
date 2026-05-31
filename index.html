@@ -43,6 +43,15 @@
       <div id="keyStatus"></div>
     </div>
 
+    <div id="voiceWrap">
+      <div class="setup-note" style="margin:18px 0 8px;">Optional: paste an <b>ElevenLabs</b> key to give the heroes &amp; dragon real voices — they speak when you hover a class and when blows land in battle.</div>
+      <div class="keyrow">
+        <input id="voiceKey" type="password" placeholder="ElevenLabs API key (optional, for voices)" autocomplete="off">
+        <button class="btn ghost" id="voiceSave" style="font-size:9px;">SAVE</button>
+      </div>
+      <div id="voiceStatus"></div>
+    </div>
+
     <div class="btnrow">
       <button class="btn" id="toSelect">ENTER THE LAIR ▶</button>
     </div>
@@ -99,6 +108,7 @@
   <script src="js/data.js"></script>
   <script src="js/gemini.js"></script>
   <script src="js/audio.js"></script>
+  <script src="js/voices.js"></script>
   <script src="js/render.js"></script>
   <script src="js/game.js"></script>
   <script src="js/ui.js"></script>

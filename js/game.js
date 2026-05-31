@@ -134,6 +134,17 @@ function applyResult(verdict, mult, quip, question){
     state.heroHp -= counter;
   }
 
+  // character voices: whoever landed the bigger blow taunts, the other reacts (2 lines, no overlap)
+  if(dmgToDragon > 0 || counter > 0){
+    if(dmgToDragon >= counter){
+      enqueueSpeak(state.classKey, "attack");   // hero strikes
+      enqueueSpeak("dragon", "hurt");            // dragon recoils
+    }else{
+      enqueueSpeak("dragon", "attack");          // dragon strikes
+      enqueueSpeak(state.classKey, "hurt");      // hero recoils
+    }
+  }
+
   updateBars();
   v.innerHTML = `<span class="v ${verdict}">${verdict.toUpperCase()}</span>` +
                 (dmgToDragon? ` · −${dmgToDragon} to dragon`:``) +

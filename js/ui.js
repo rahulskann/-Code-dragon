@@ -32,6 +32,9 @@
     const go=()=>{ sfx.pick(); startBattle(key); };
     card.addEventListener('click',go);
     card.addEventListener('keydown',e=>{if(e.key==="Enter"||e.key===" ")go();});
+    // speak the class's hover line on mouse-over / keyboard focus (needs an ElevenLabs key)
+    card.addEventListener('mouseenter',()=>speakHover(key));
+    card.addEventListener('focus',()=>speakHover(key));
   });
 })();
 
@@ -55,6 +58,22 @@ $('optClassic').addEventListener('keydown', e=>{if(e.key==="Enter"||e.key===" ")
 
 // preload saved key
 (function(){ const k=lsGet(LS_KEY); if(k){ $('keyInput').value=k; state.apiKey=k; $('keyStatus').textContent="Saved key loaded."; $('keyStatus').className="ok"; } })();
+
+// preload saved ElevenLabs voice key + wire its save/test button
+(function(){ const k=getElevenKey(); if(k){ $('voiceKey').value=k; $('voiceStatus').textContent="Saved voice key loaded — characters will speak."; $('voiceStatus').className="ok"; } })();
+
+$('voiceSave').addEventListener('click', async ()=>{
+  const k=$('voiceKey').value.trim();
+  if(!k){ setElevenKey(""); $('voiceStatus').textContent="Voices off — no key set."; $('voiceStatus').className=""; return; }
+  setElevenKey(k);
+  $('voiceStatus').textContent="Testing voice key…"; $('voiceStatus').className="";
+  try{
+    await testElevenKey();
+    $('voiceStatus').textContent="✓ Voices connected — hover a class to hear it."; $('voiceStatus').className="ok";
+  }catch(e){
+    $('voiceStatus').textContent="✗ Couldn't reach ElevenLabs (key, quota, or network). Game runs fine without voices."; $('voiceStatus').className="bad";
+  }
+});
 
 $('keySave').addEventListener('click', async ()=>{
   const k=$('keyInput').value.trim();
@@ -84,6 +103,7 @@ $('classBtn').addEventListener('click', ()=>show('selectScreen'));
 $('muteBtn').addEventListener('click', ()=>{
   state.muted=!state.muted;
   $('muteBtn').textContent = state.muted ? "♪ OFF" : "♪ ON";
+  if(state.muted) stopVoice();   // also silence any in-progress character voice
 });
 
 updateBars();

@@ -61,6 +61,8 @@
   .toggle p{font-size:16px;color:var(--ink-dim);line-height:1.2;}
   #keyStatus{font-size:15px;text-align:center;min-height:18px;margin-bottom:10px;color:var(--ink-dim);}
   #keyStatus.ok{color:var(--correct);} #keyStatus.bad{color:var(--wrong);}
+  #voiceStatus{font-size:15px;text-align:center;min-height:18px;margin-bottom:10px;color:var(--ink-dim);}
+  #voiceStatus.ok{color:var(--correct);} #voiceStatus.bad{color:var(--wrong);}
 
   /* ---------- SELECT ---------- */
   #selectScreen{padding:20px 18px 24px;}
