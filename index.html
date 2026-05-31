@@ -3,15 +3,14 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>CODE DRAGON — Interview of Fire (Gemini Edition)</title>
+<title>CODE DRAGON — Interview of Fire</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/styles.css">
+  <link rel="stylesheet" href="css/styles.css">
 </head>
 <body>
 <div id="app">
-  <div class="modeTag" id="modeTag">CLASSIC</div>
   <button id="muteBtn" title="toggle sound">♪ ON</button>
 
   <div class="titlebar">
@@ -19,88 +18,118 @@
     <div class="sub">~ The Interview of Fire ~</div>
   </div>
 
-  <!-- ===================== SETUP ===================== -->
-  <section id="setupScreen" class="active">
-    <div class="prompt">Choose how the <b>dragon</b> tests you.</div>
-    <div class="setup-note">AI Mode uses Google Gemini to ask open-ended questions and grade what you actually type — like a real interview. Classic Mode runs offline with a fixed multiple-choice bank.</div>
-
+  <!-- ====== SETUP (Gemini key + mode) ====== -->
+  <section id="setupScreen">
+    <div class="prompt">How should the <b>dragon</b> test you?</div>
+    <div class="setup-note">AI Mode uses <b>Google Gemini</b> to ask open-ended questions and grade what you type — like a real interview, and the dragon talks back. Classic Mode is multiple-choice and works fully offline.</div>
     <div class="toggle-row">
       <div class="toggle aiopt" id="optAI" tabindex="0">
-        <h4>AI MODE</h4>
-        <p>Type your answers. Gemini grades them &amp; the dragon talks back.</p>
+        <h4>✦ AI MODE</h4>
+        <p>Type your answers. Gemini grades them.</p>
       </div>
       <div class="toggle classicopt sel" id="optClassic" tabindex="0">
         <h4>CLASSIC</h4>
-        <p>Multiple choice. No key, works fully offline.</p>
+        <p>Multiple choice. No key needed.</p>
       </div>
     </div>
-
-    <div id="keyWrap" style="display:none;">
+    <div id="keyWrap" style="display:none">
       <div class="keyrow">
-        <input id="keyInput" type="password" placeholder="Paste your Gemini API key (AI Studio)" autocomplete="off">
-        <button class="btn ghost" id="keySave" style="font-size:9px;">SAVE</button>
+        <input id="keyInput" type="password" placeholder="Paste your Gemini API key" autocomplete="off">
+        <button class="btn ghost" id="keyTest">TEST</button>
       </div>
       <div id="keyStatus"></div>
     </div>
+    <div id="voiceWrap">
+      <div class="setup-note" style="margin-top:18px;">Optional: paste an <b>ElevenLabs</b> key to give the heroes &amp; dragon real voices — they speak when you hover a class and when blows land in battle.</div>
+      <div class="keyrow">
+        <input id="voiceKey" type="password" placeholder="ElevenLabs API key (optional, for voices)" autocomplete="off">
+        <button class="btn ghost" id="voiceSave">SAVE</button>
+      </div>
+      <div id="voiceStatus"></div>
+    </div>
 
-    <div class="btnrow">
+    <div style="text-align:center;margin-top:8px">
       <button class="btn" id="toSelect">ENTER THE LAIR ▶</button>
     </div>
-    <div class="hint">Get a free key at aistudio.google.com → "Get API key". It stays in your browser only.</div>
+    <div class="hint">Free key at <b>aistudio.google.com</b> → “Get API key”. It's stored only in your browser.</div>
   </section>
 
-  <!-- ===================== SELECT ===================== -->
+  <!-- ====== SELECT ====== -->
   <section id="selectScreen">
     <div class="prompt">A <b>dragon</b> guards the offer letter.<br>Choose your class, adventurer.</div>
     <div class="cards" id="cards"></div>
-    <div class="hint">Each class is quizzed on its own craft.</div>
+    <div class="hint">Each class is quizzed on its own craft. Answer right to strike &amp; dodge — answer wrong and feel the flames.</div>
   </section>
 
-  <!-- ===================== BATTLE ===================== -->
+  <!-- ====== BATTLE ====== -->
   <section id="battleScreen">
-    <div class="stage">
-      <canvas id="stageCanvas" width="320" height="160"></canvas>
-      <div class="nameplate" id="dragonPlate">
-        THE DRAGON
-        <div class="bar"><i id="dragonHpFill"></i></div>
-        <div class="hpnum"><span id="dragonHpNum">100</span> HP</div>
-      </div>
-      <div class="nameplate" id="heroPlate">
-        <span id="heroName">HERO</span>
-        <div class="bar"><i id="heroHpFill"></i></div>
-        <div class="hpnum"><span id="heroHpNum">100</span> HP</div>
+    <button id="homeBtn" title="back to class select (abandons this fight)">⌂ HOME</button>
+    <div id="stageWrap">
+      <canvas id="stage" width="640" height="360"></canvas>
+      <div id="dmgLayer"></div>
+      <div id="flashFx"></div>
+      <div id="dragonHud">
+        <div class="name pixel" style="font-size:9px">ANCIENT BUG DRAGON</div>
+        <div class="bar"><div class="fill" id="dragonFill"></div></div>
       </div>
     </div>
 
-    <div class="qpanel">
-      <div class="turnflag" id="turnFlag">⚔ YOUR STRIKE — answer to deal damage</div>
-      <div id="questionText">…</div>
-      <div id="answerArea"></div>
-      <div class="verdict" id="verdict"></div>
+    <div id="heroHud">
+      <canvas id="heroPortrait" width="48" height="48"></canvas>
+      <div id="heroInfo">
+        <div class="row1">
+          <span id="heroName" class="pixel" style="font-size:9px">HERO</span>
+          <span id="heroHpText">100 / 100</span>
+        </div>
+        <div class="bar"><div class="fill" id="heroFill"></div></div>
+        <div id="specRow">
+          <span id="specLabel">⚡SPECIAL</span>
+          <div id="specBar"><div id="specFill"></div></div>
+        </div>
+      </div>
+    </div>
+
+    <div id="log"><span id="logText">A shadow falls over the dungeon...</span></div>
+
+    <div id="qPanel">
+      <div id="qMeta">
+        <span id="qTag" class="def pixel">DEFEND</span>
+        <div id="timerWrap"><div id="timerFill"></div></div>
+      </div>
+      <div id="qText">—</div>
+      <div id="answers"></div>
     </div>
   </section>
 
-  <!-- ===================== END ===================== -->
+  <!-- ====== END ====== -->
   <section id="endScreen">
-    <div id="endTitle"></div>
-    <div id="endSub"></div>
-    <div id="endStats"></div>
-    <div id="endReview"></div>
-    <div class="btnrow">
-      <button class="btn" id="againBtn">RUN IT BACK</button>
-      <button class="btn ghost" id="classBtn">NEW CLASS</button>
-    </div>
+    <div id="endTitle" class="pixel">—</div>
+    <div id="endSub">—</div>
+    <div id="endStats">—</div>
+    <button class="btn" id="againBtn">FIGHT AGAIN</button>
+    <button class="btn ghost" id="classBtn" style="margin-left:8px">NEW CLASS</button>
   </section>
 </div>
 
-  <!-- load order matters: each file relies on the ones above it -->
-  <script src="js/config.js"></script>
-  <script src="js/sprites.js"></script>
-  <script src="js/data.js"></script>
-  <script src="js/gemini.js"></script>
+
+  <!-- Ordered classic scripts sharing one global scope.
+       Splitting is purely organizational — behavior is identical.
+       Load order = dependency order; do not reorder casually. -->
+  <script src="js/core.js"></script>
+  <!-- optional local keys (git-ignored). If js/config.local.js is missing,
+       this 404s harmlessly and the on-screen key fields are used instead. -->
+  <script src="js/config.local.js"></script>
+  <script src="js/sprites-hero.js"></script>
+  <script src="js/sprites-dragon.js"></script>
+  <script src="js/entities.js"></script>
+  <script src="js/background.js"></script>
+  <script src="js/effects.js"></script>
+  <script src="js/render-loop.js"></script>
   <script src="js/audio.js"></script>
-  <script src="js/render.js"></script>
-  <script src="js/game.js"></script>
-  <script src="js/ui.js"></script>
+  <script src="js/voices.js"></script>
+  <script src="js/questions.js"></script>
+  <script src="js/gemini.js"></script>
+  <script src="js/battle.js"></script>
+  <script src="js/main.js"></script>
 </body>
 </html>

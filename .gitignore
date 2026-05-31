@@ -1,0 +1,6 @@
+# Local API keys — never commit these (they'd be public in git history)
+js/config.local.js
+
+# Editor / OS noise
+.DS_Store
+*.swp
